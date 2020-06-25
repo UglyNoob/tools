@@ -62,12 +62,25 @@ void search(){
 }
 
 int main(int argc,char **argv){
-	if(argc!=2){
+	if(argc==1){
 		printf("Usage: %s [text to search]\n",argv[0]);
 		return 1;
 	}
-
-	text=argv[1];
+	int textLen=0;
+	for(int i=1;i<argc;i++){
+		textLen+=strlen(argv[i]);
+	}
+	text=new char[textLen+argc-1];
+	int index=0;
+	for(int i=1;i<argc;i++){
+		for(int j=0;argv[i][j];j++){
+			text[index]=argv[i][j];
+			index++;
+		}
+		text[index]=' ';
+		index++;
+	}
+	text[index-1]='\0';
 	dirname=getcwd(NULL,0);
 	buffer=new char[1048577];
 	len=strlen(text);
