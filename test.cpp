@@ -1,10 +1,10 @@
 #include<cstdio>
-
+#include<cmath>
 int main(){
-	//printf("%d",EOF);
-	FILE *f=fopen("b","r");
-	char c;
-	while((c=fgetc(f))!=EOF){
-		printf("%d\n",c);
-	}
+	int x,n;
+	double re;
+	scanf("%d%d",&x,&n);
+	re=x;
+	for(int i=0;i<n;i++)re*=1.001;
+	printf("%.4lf",re);
 }
