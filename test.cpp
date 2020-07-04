@@ -1,10 +1,11 @@
 #include<cstdio>
 #include<cmath>
 int main(){
-	int x,n;
-	double re;
-	scanf("%d%d",&x,&n);
-	re=x;
-	for(int i=0;i<n;i++)re*=1.001;
-	printf("%.4lf",re);
+	int k,a=1,b=1;
+	scanf("%d",&k);
+	if(k<3){puts("1");return 0;}
+	for(int i=k;i>2;i--){
+		k=b;b=a+b;a=k;
+	}
+	printf("%d\n",b);
 }
