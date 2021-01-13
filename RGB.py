@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import pygame
 pygame.init()
-screen=pygame.display.set_mode(flags=pygame.FULLSCREEN)
+screen=pygame.display.set_mode((600,600))
 pygame.display.set_caption('RGB熬')
 font=pygame.font.SysFont(pygame.font.get_default_font(),48)
 r=0
