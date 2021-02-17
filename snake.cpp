@@ -5,6 +5,7 @@
 #include<list>
 #include<thread>
 #include<cstring>
+#include "number.h"
 #ifdef __WIN32
 #include<windows.h>
 #else
@@ -43,6 +44,7 @@ void key_callback(GLFWwindow*,int,int,int,int);
 void game_main();
 
 void initialize_window(GLFWwindow*);
+void update_cursor();
 void delay(int);
 position random_pos(GLFWwindow*);
 void refresh(GLFWwindow*);
@@ -53,10 +55,12 @@ list<node> snake;
 node apple;
 GLFWmonitor *monitor;
 GLFWvidmode *vidmode;
+GLFWcursor *cursor;
+GLFWimage cursor_image;
 
 int map_width,map_height,direction,direction_pre,score;
 bool time_to_exit=false,snake_forward=false;
-
+unsigned char cursor_pixels[4*32*32];
 
 int main(int argc, char **argv){
 	glfwSetErrorCallback(error_callback);
@@ -82,6 +86,11 @@ int main(int argc, char **argv){
 	direction=rand()%4;
 	direction_pre=direction;
 	
+	cursor_image.width=32;
+	cursor_image.height=32;
+	cursor_image.pixels=cursor_pixels;
+	update_cursor();
+	
 	thread game_thread(game_main);
 	
 	while(!time_to_exit){
@@ -95,7 +104,6 @@ int main(int argc, char **argv){
 				glClearColor(BODY_COLOR.r,BODY_COLOR.g,BODY_COLOR.b,BODY_COLOR.a);
 			}
 			refresh(iter->window);
-			
 		}
 		glfwPollEvents();
 		if(snake_forward){
@@ -127,7 +135,8 @@ int main(int argc, char **argv){
 			if(pos.x==apple.pos.x&&pos.y==apple.pos.y){
 				apple.pos=random_pos(apple.window);
 				score++;
-                printf("Apple eaten detected, now score %d\n",score);
+				printf("Apple eaten detected, now score %d\n",score);
+				update_cursor();
 			}else{
 				node tail=snake.back();
 				glfwDestroyWindow(tail.window);
@@ -140,8 +149,8 @@ int main(int argc, char **argv){
 					end(0);
 				}
 			}
-			delay(1);
 		}
+		delay(1);
 	}
 	end(0);
 	return 0;
@@ -181,7 +190,38 @@ void initialize_window(GLFWwindow *window){
 	glfwMakeContextCurrent(window);
 	glfwSetWindowCloseCallback(window,window_close_callback);
 	glfwSetKeyCallback(window,key_callback);
+	glfwSetCursor(window,cursor);
 	glfwSwapInterval(0);
+}
+void update_cursor(){
+	if(cursor!=NULL){
+		glfwDestroyCursor(cursor);
+	}
+	int l=score/10%10;
+	int r=score%10;
+	unsigned char *ptr=cursor_pixels;
+	for(int y=0;y<32;y++){
+		for(int x=0;x<32;x++){
+			bool index=x<16?numbers[l][y/2][x/2]:numbers[r][y/2][x/2-8];
+			if(index){
+				*ptr=0xff;
+				*(++ptr)=0xff;
+				*(++ptr)=0xff;
+				*(++ptr)=0xff;
+			}else{
+				*ptr=0x00;
+				*(++ptr)=0x00;
+				*(++ptr)=0x00;
+				*(++ptr)=0x00;
+			}
+			ptr++;
+		}
+	}
+	cursor=glfwCreateCursor(&cursor_image,0,0);
+	glfwSetCursor(apple.window,cursor);
+	for(list<node>::iterator iter=snake.begin();iter!=snake.end();iter++){
+		glfwSetCursor(iter->window,cursor);
+	}
 }
 void error_callback(int code,const char *description){
 	log_error(description);
