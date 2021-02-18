@@ -67,8 +67,14 @@ GLFWimage cursor_image;
 int map_width,map_height,direction,direction_pre,score,**map;
 bool time_to_exit=false,snake_forward=false;
 unsigned char cursor_pixels[4*32*32];
+const char *white_background="\033[47m";
 
 int main(int argc, char **argv){
+	if(argc!=1&&strcmp(argv[1],"none")==0){
+		white_background="\033[0m";
+	}else{
+		fprintf(stderr,"Call \"%s none\" to disable map white background.\n",argv[0]);
+	}
 	glfwSetErrorCallback(error_callback);
 	glfwInit();
 	monitor=glfwGetPrimaryMonitor();
@@ -270,23 +276,26 @@ void key_callback(GLFWwindow* window,int key,int scancode,int action,int mods){
 }
 
 void output_map(){//JUST FOR TESTING UNIX ONLY
+#ifndef __WIN32
 	for(int y=0;y<map_height;y++){
+		printf("%s",white_background);
 		for(int x=0;x<map_width;x++){
 			switch(map[x][y]){
 				case MAP_EMPTY:
-					printf("\033[0m ");
+					printf("  ");
 					break;
 				case MAP_APPLE:
-					printf("\033[41m ");
+					printf("\033[41m  %s",white_background);
 					break;
 				case MAP_SNAKE:
-					printf("\033[44m ");
+					printf("\033[44m  %s",white_background);
 					break;
 			}
 		}
 		puts("\033[0m");
 	}
 	printf("\033[%dA",map_height);
+#endif
 }
 
 void delay(int ms){
