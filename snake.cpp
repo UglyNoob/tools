@@ -184,28 +184,7 @@ void game_main(){
 	delay(1000/step_per_sec);
 	while(true){
 		delay(1000/step_per_sec);
-		switch(direction_pre){
-			case UP:
-				if(direction!=DOWN){
-					direction=direction_pre;
-				}
-				break;
-			case DOWN:
-				if(direction!=UP){
-					direction=direction_pre;
-				}
-				break;
-			case LEFT:
-				if(direction!=RIGHT){
-					direction=direction_pre;
-				}
-				break;
-			case RIGHT:
-				if(direction!=LEFT){
-					direction=direction_pre;
-				}
-				break;
-		}
+		direction=direction_pre;
 		snake_forward=true;
 	}
 }
@@ -260,16 +239,24 @@ void key_callback(GLFWwindow* window,int key,int scancode,int action,int mods){
 	if(action==GLFW_PRESS){
 		switch(key){
 			case GLFW_KEY_UP:
-				direction_pre=UP;
+				if(direction!=DOWN){
+					direction_pre=UP;
+				}
 				break;
 			case GLFW_KEY_DOWN:
-				direction_pre=DOWN;
+				if(direction!=UP){
+					direction_pre=DOWN;
+				}
 				break;
 			case GLFW_KEY_LEFT:
-				direction_pre=LEFT;
+				if(direction!=RIGHT){
+					direction_pre=LEFT;
+				}
 				break;
 			case GLFW_KEY_RIGHT:
-				direction_pre=RIGHT;
+				if(direction!=LEFT){
+					direction_pre=RIGHT;
+				}
 				break;
 		}
 	}
