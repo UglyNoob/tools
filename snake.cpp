@@ -29,6 +29,9 @@ const int LEFT=2;
 const int RIGHT=3;
 const int CREATE_WINDOW=4;
 const int DESTROY_WINDOW=5;
+const int MAP_EMPTY=6;
+const int MAP_APPLE=7;
+const int MAP_SNAKE=8;
 const int WINDOW_WIDTH=80;
 const int WINDOW_HEIGHT=80;
 const int step_per_sec=3;
@@ -43,10 +46,13 @@ void key_callback(GLFWwindow*,int,int,int,int);
 
 void game_main();
 
+void output_map();//JUST FOR TESTING
 void initialize_window(GLFWwindow*);
 void update_cursor();
 void delay(int);
 position random_pos(GLFWwindow*);
+void set_window_pos(GLFWwindow*,position);
+void generate_apple();
 void refresh(GLFWwindow*);
 void log_error(const char*);
 void end(int);
@@ -58,7 +64,7 @@ GLFWvidmode *vidmode;
 GLFWcursor *cursor;
 GLFWimage cursor_image;
 
-int map_width,map_height,direction,direction_pre,score;
+int map_width,map_height,direction,direction_pre,score,**map;
 bool time_to_exit=false,snake_forward=false;
 unsigned char cursor_pixels[4*32*32];
 
@@ -71,6 +77,13 @@ int main(int argc, char **argv){
 	glfwWindowHint(GLFW_RESIZABLE,GLFW_FALSE);
 	map_width=vidmode->width/WINDOW_WIDTH;
 	map_height=vidmode->height/WINDOW_HEIGHT;
+	map=new int*[map_width];
+	for(int x=0;x<map_width;x++){
+		map[x]=new int[map_height];
+		for(int y=0;y<map_height;y++){
+			map[x][y]=MAP_EMPTY;
+		}
+	}
 	glfwWindowHint(GLFW_FOCUSED,GLFW_TRUE);
 	apple.window=glfwCreateWindow(WINDOW_WIDTH,WINDOW_HEIGHT,WINDOW_NAME,NULL,NULL);
 	glfwWindowHint(GLFW_FOCUSED,GLFW_FALSE);
@@ -78,10 +91,12 @@ int main(int argc, char **argv){
 	glClearColor(APPLE_COLOR.r,APPLE_COLOR.g,APPLE_COLOR.b,APPLE_COLOR.a);
 	srand((unsigned int)time(NULL));
 	apple.pos=random_pos(apple.window);
+	map[apple.pos.x][apple.pos.y]=MAP_APPLE;
 	
 	GLFWwindow *head_window=glfwCreateWindow(WINDOW_WIDTH,WINDOW_HEIGHT,WINDOW_NAME,NULL,NULL);
 	initialize_window(head_window);
 	node head={head_window,random_pos(head_window)};
+	map[head.pos.x][head.pos.y]=MAP_SNAKE;
 	snake.push_back(head);
 	direction=rand()%4;
 	direction_pre=direction;
@@ -132,14 +147,17 @@ int main(int argc, char **argv){
 			glfwSetWindowPos(win,pos.x*WINDOW_WIDTH,pos.y*WINDOW_HEIGHT);
 			node head={win,pos};
 			snake.push_front(head);
+			map[head.pos.x][head.pos.y]=MAP_SNAKE;
+
 			if(pos.x==apple.pos.x&&pos.y==apple.pos.y){
-				apple.pos=random_pos(apple.window);
+				generate_apple();
 				score++;
-				printf("Apple eaten detected, now score %d\n",score);
+				//printf("Apple eaten detected, now score %d\n",score);
 				update_cursor();
 			}else{
 				node tail=snake.back();
 				glfwDestroyWindow(tail.window);
+				if(head.pos.x!=tail.pos.x||head.pos.y!=tail.pos.y)map[tail.pos.x][tail.pos.y]=MAP_EMPTY;
 				snake.pop_back();
 			}
 			list<node>::iterator iter=snake.begin();
@@ -149,6 +167,7 @@ int main(int argc, char **argv){
 					end(0);
 				}
 			}
+			output_map();//JUST FOR TESTING
 		}
 		delay(1);
 	}
@@ -250,6 +269,26 @@ void key_callback(GLFWwindow* window,int key,int scancode,int action,int mods){
 	}
 }
 
+void output_map(){//JUST FOR TESTING UNIX ONLY
+	for(int y=0;y<map_height;y++){
+		for(int x=0;x<map_width;x++){
+			switch(map[x][y]){
+				case MAP_EMPTY:
+					printf("\033[0m ");
+					break;
+				case MAP_APPLE:
+					printf("\033[41m ");
+					break;
+				case MAP_SNAKE:
+					printf("\033[44m ");
+					break;
+			}
+		}
+		puts("\033[0m");
+	}
+	printf("\033[%dA",map_height);
+}
+
 void delay(int ms){
 #ifdef __WIN32
 	Sleep(ms);
@@ -259,8 +298,26 @@ void delay(int ms){
 }
 position random_pos(GLFWwindow *window){
 	position p={rand()%map_width,rand()%map_height};
-	glfwSetWindowPos(window,WINDOW_WIDTH*p.x,WINDOW_HEIGHT*p.y);
+	set_window_pos(window,p);
 	return p;
+}
+void set_window_pos(GLFWwindow *window,position p){
+	if(window!=NULL){
+		glfwSetWindowPos(window,WINDOW_WIDTH*p.x,WINDOW_HEIGHT*p.y);
+	}
+}
+void generate_apple(){
+	//map[apple.pos.x][apple.pos.y]=MAP_EMPTY;It should be SNAKE HEAD
+	bool flag=true;
+	while(flag){
+		position apple_pos=random_pos(NULL);
+		if(map[apple_pos.x][apple_pos.y]==MAP_EMPTY){
+			set_window_pos(apple.window,apple_pos);
+			apple.pos=apple_pos;
+			map[apple.pos.x][apple.pos.y]=MAP_APPLE;
+			flag=false;
+		}
+	}
 }
 void refresh(GLFWwindow *window){
 	glClear(GL_COLOR_BUFFER_BIT);
