@@ -65,13 +65,17 @@ GLFWcursor *cursor;
 GLFWimage cursor_image;
 
 int map_width,map_height,direction,direction_pre,score,**map;
-bool time_to_exit=false,snake_forward=false;
+bool time_to_exit=false,snake_forward=false,disable_white_background=false;
 unsigned char cursor_pixels[4*32*32];
 const char *white_background="\033[47m";
 
 int main(int argc, char **argv){
+#ifdef __WIN32
+	system("cls");
+#endif
 	if(argc!=1&&strcmp(argv[1],"none")==0){
 		white_background="\033[0m";
+		disable_white_background=true;
 	}else{
 		fprintf(stderr,"Call \"%s none\" to disable map white background.\n",argv[0]);
 	}
@@ -169,7 +173,9 @@ int main(int argc, char **argv){
 			list<node>::iterator iter=snake.begin();
 			for(iter++;iter!=snake.end();iter++){
 				if(pos.x==iter->pos.x&&pos.y==iter->pos.y){
-					printf("\033[91m\033[1mYou died with score %d\n\033[0m",score);
+					char over[100];
+					sprintf(over, "You died with score %d", score);
+					log_error(over);
 					end(0);
 				}
 			}
@@ -262,8 +268,36 @@ void key_callback(GLFWwindow* window,int key,int scancode,int action,int mods){
 	}
 }
 
-void output_map(){//JUST FOR TESTING UNIX ONLY
-#ifndef __WIN32
+void output_map(){//JUST FOR TESTING
+#ifdef __WIN32
+	HANDLE handle=GetStdHandle(STD_OUTPUT_HANDLE);
+	CONSOLE_SCREEN_BUFFER_INFO info;
+	GetConsoleScreenBufferInfo(handle, &info);
+	WORD general=info.wAttributes;
+	for(int y=0;y<map_height;y++){
+		for(int x=0;x<map_width;x++){
+			switch(map[x][y]){
+				case MAP_EMPTY:
+					if(!disable_white_background){
+						SetConsoleTextAttribute(handle, 0xff);
+					}
+					printf("  ");
+					break;
+				case MAP_APPLE:
+					SetConsoleTextAttribute(handle, BACKGROUND_RED);
+					printf("  ");
+					break;
+				case MAP_SNAKE:
+					SetConsoleTextAttribute(handle, BACKGROUND_BLUE);
+					printf("  ");
+					break;
+			}
+		}
+		SetConsoleTextAttribute(handle, general);
+		putchar('\n');
+	}
+	SetConsoleCursorPosition(handle,info.dwCursorPosition);
+#else
 	for(int y=0;y<map_height;y++){
 		printf("%s",white_background);
 		for(int x=0;x<map_width;x++){
@@ -320,7 +354,17 @@ void refresh(GLFWwindow *window){
 	glfwSwapBuffers(window);
 }
 void log_error(const char *info){
+#ifdef __WIN32
+	HANDLE handle=GetStdHandle(STD_OUTPUT_HANDLE);
+	CONSOLE_SCREEN_BUFFER_INFO console_screen_buffer_info;
+	GetConsoleScreenBufferInfo(handle, &console_screen_buffer_info);
+	SetConsoleTextAttribute(handle, FOREGROUND_RED);
+	printf("%s", info);
+	SetConsoleTextAttribute(handle, console_screen_buffer_info.wAttributes);
+	putchar('\n');
+#else
 	fprintf(stderr,"\033[91m\033[1m%s\n\033[0m",info);
+#endif
 }
 void end(int code){
 	glfwTerminate();
