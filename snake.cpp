@@ -286,10 +286,16 @@ void output_map(){//JUST FOR TESTING
 				case MAP_APPLE:
 					SetConsoleTextAttribute(handle, BACKGROUND_RED);
 					printf("  ");
+					if(disable_white_background) {
+						SetConsoleTextAttribute(handle, general);
+					}
 					break;
 				case MAP_SNAKE:
 					SetConsoleTextAttribute(handle, BACKGROUND_BLUE);
 					printf("  ");
+					if(disable_white_background) {
+						SetConsoleTextAttribute(handle, general);
+					}
 					break;
 			}
 		}
