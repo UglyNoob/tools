@@ -1,4 +1,4 @@
-#define GL_GLEXT_PROTOTYPES
+#include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <cstdio>
 #include <cstdlib>
@@ -89,13 +89,17 @@ int direction, direction_pre, score;
 unsigned int vertex_array, vertex_buffer, element_buffer, vertex_shader, fragment_shader, shader_program, background;
 bool snake_lock;
 
-int main() {
+int main(int argc, char **argv) {
 	glfwSetErrorCallback(error_callback);
 	glfwInit();
 	window = glfwCreateWindow(MAP_WIDTH * NODE_WIDTH, MAP_HEIGHT * NODE_HEIGHT, WINDOW_TITLE, NULL, NULL);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 	glfwSetKeyCallback(window, key_callback);
 	glfwMakeContextCurrent(window);
+	if(!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)){
+		log_error("Load OpenGL Failed");
+		end(12);
+	}
 	glfwSwapInterval(1);
 	init_gl();
 	init_game();
