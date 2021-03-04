@@ -8,8 +8,9 @@ public class Connect{
 		}
 		Socket s = new Socket(args[0],Integer.parseInt(args[1]));
 		OutputStream os = s.getOutputStream();
+		InputStreamReader isr = new InputStreamReader(System.in, "UTF-8");
 		while(true) {
-			os.write(System.in.read());
+			os.write((char)isr.read());
 		}
 	}
 }

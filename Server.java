@@ -38,6 +38,7 @@ public class Server{
 				public int ID;
 				public Socket client;
 				public InputStream is;
+				public InputStreamReader isr;
 				public void run(){
 					client=clientTmp;
 					ID=id;
@@ -47,15 +48,16 @@ public class Server{
 					sb.append(" from \033[94m");
 					sb.append(client.getInetAddress().toString());
 					sb.append("\033[0m connected");
-					log(ID,sb.toString());
+					log(ID, sb.toString());
 					try{
 						is=client.getInputStream();
+						isr=new InputStreamReader(is);
 					}catch(IOException e){e.printStackTrace();System.exit(5);}
 					sb.setLength(0);
 					while(true){
 						char data=0;
 						try{
-							data=(char)is.read();
+							data=(char)isr.read();
 							if(data==(char)-1)break;
 						}catch(IOException e){
 							e.printStackTrace();
