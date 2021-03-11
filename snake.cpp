@@ -1,9 +1,11 @@
+#include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
 #include <list>
 #include <thread>
+#include <chrono>
 #include <cstring>
 #include "number.h"
 #ifdef __WIN32
@@ -110,6 +112,10 @@ int main(int argc, char **argv){
 		apple.window=glfwCreateWindow(WINDOW_WIDTH,WINDOW_HEIGHT,WINDOW_NAME,NULL,NULL);
 		glfwWindowHint(GLFW_FOCUSED,GLFW_FALSE);
 		initialize_window(apple.window);
+		if(!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+			log_error("Failed to load OpenGL");
+			end(1);
+		}
 		glClearColor(APPLE_COLOR.r,APPLE_COLOR.g,APPLE_COLOR.b,APPLE_COLOR.a);
 		srand((unsigned int)time(NULL));
 		apple.pos=random_pos(apple.window);
@@ -278,8 +284,9 @@ void update_cursor(){
 	}
 }
 void error_callback(int code,const char *description){//DO NOT CALL
-	log_error(description);
-	end(code);
+	char output[10240];
+	sprintf(output, "Error %d: %s", code, description);
+	log_error(output);
 }
 void window_close_callback(GLFWwindow *window){
 	log_error("Now exiting...");
@@ -382,11 +389,7 @@ void output_map(){//JUST FOR TESTING
 }
 
 void delay(int ms){
-#ifdef __WIN32
-	Sleep(ms);
-#else
-	usleep(ms*1000);
-#endif
+	std::this_thread::sleep_for(std::chrono::milliseconds(ms));
 }
 position random_pos(GLFWwindow *window){
 	position p={rand()%map_width,rand()%map_height};

@@ -9,11 +9,6 @@
 #include <list>
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
-# ifdef __WIN32
-#include <windows.h>
-# else
-#include <unistd.h>
-# endif
 using namespace std;
 
 struct pos{
@@ -277,11 +272,7 @@ void init_gl() {
 }
 
 void delay(int ms) {
-#ifdef __WIN32
-	Sleep(ms);
-# else
-	usleep(ms*1000);
-# endif
+	std::this_thread::sleep_for(std::chrono::milliseconds(ms));
 }
 void log_error(const char *description) {
 	fprintf(stderr, "\033[91m\033[1m%s\033[0m\n", description);
@@ -321,6 +312,7 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
 	glViewport(0, 0, width, height);
 }
 void error_callback(int code, const char *description) {
-	log_error(description);
-	end(code);
+	char output[10240];
+	sprintf(output, "Error %d: %s", code, description);
+	log_error(output);
 }
