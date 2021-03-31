@@ -19,7 +19,7 @@ public class JavaScriptRunner{
 		try {
 			file=new File(fileName);
 		}catch(Exception fe){
-			System.err.printf("\033[91m%s\033[0m",fe.toString());
+			System.err.printf("\033[91m\033[1m%s\033[0m\n",fe.toString());
 			System.exit(-1);
 		}
 		if(!file.canRead()){
@@ -29,7 +29,7 @@ public class JavaScriptRunner{
 		try {
 			se.eval(new FileReader(file));
 		} catch(Exception e){
-			System.err.printf("\033[91m%s\033[0m",e.toString());
+			System.err.printf("\033[91m\033[1m%s\033[0m\n",e.toString());
 			System.exit(-1);
 		}
 	}
