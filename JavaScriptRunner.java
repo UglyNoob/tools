@@ -7,7 +7,7 @@ public class JavaScriptRunner{
 		ScriptEngine se=sem.getEngineByName("javascript");
 
 		if(args.length==0){
-			System.err.println("\033[91mUsage: java JavaScriptRunner [SCRIPT FILE NAME]\033[0m");
+			System.err.println("\033[91m\033[1mUsage: java JavaScriptRunner [SCRIPT FILE NAME]\033[0m");
 			System.exit(-1);
 		}
 		StringBuilder sb=new StringBuilder(args[0]);
@@ -23,7 +23,7 @@ public class JavaScriptRunner{
 			System.exit(-1);
 		}
 		if(!file.canRead()){
-			System.err.printf("\033[91mCan't open \033[93m%s\033[91m for reading\033[0m\n",fileName);
+			System.err.printf("\033[91m\033[1mCan't open \033[93m%s\033[91m for reading\033[0m\n",fileName);
 			System.exit(-1);
 		}
 		try {
