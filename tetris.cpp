@@ -322,6 +322,50 @@ void parse_cmdline(int argc, char **argv) {
 	}
 }
 
+
+inline char random_block() {
+	return (char)(rand() % (MAP_BLOCK_END - MAP_BLOCK - 1) + MAP_BLOCK + 1);
+}
+
+char now_block, next_block;
+bool will_output, will_generate_block, is_lost;
+int score, rotate_count;
+
+const char* get_color_from_block(char block) {
+	switch(block) {
+		case MAP_EMPTY:
+			return "  ";
+			break;
+		case MAP_BLOCK:
+			return "\033[47m  \033[0m";
+			break;
+		case MAP_BLOCK_L:
+			return "\033[41m  \033[0m";
+			break;
+		case MAP_BLOCK_LONG:
+			return "\033[42m  \033[0m";
+			break;
+		case MAP_BLOCK_SQUARE:
+			return "\033[43m  \033[0m";
+			break;
+		case MAP_BLOCK_STEP:
+			return "\033[44m  \033[0m";
+			break;
+		case MAP_BLOCK_CONVEX:
+			return "\033[45m  \033[0m";
+			break;
+		case MAP_BLOCK_L_FLIP:
+			return "\033[46m  \033[0m";
+			break;
+		case MAP_BLOCK_STEP_FLIP:
+			return "\033[103m  \033[0m";
+			break;
+		default:
+			log_error("Unknown enum detected: %d", block);
+			end(1);
+	}
+	return nullptr;
+}
 void output_clear() {
 	static bool first = true;
 	if(first) {
@@ -339,38 +383,7 @@ void output(SquareArray obj = map) {
 	for(int y = 0; y < obj.height; y++) {
 		printf("\033[K|");
 		for(int x = 0; x < obj.width; x++) {
-			switch(get(x, y, obj)) {
-				case MAP_EMPTY:
-					printf("  ");
-					break;
-				case MAP_BLOCK:
-					printf("\033[47m  \033[0m");
-					break;
-				case MAP_BLOCK_L:
-					printf("\033[41m  \033[0m");
-					break;
-				case MAP_BLOCK_LONG:
-					printf("\033[42m  \033[0m");
-					break;
-				case MAP_BLOCK_SQUARE:
-					printf("\033[43m  \033[0m");
-					break;
-				case MAP_BLOCK_STEP:
-					printf("\033[44m  \033[0m");
-					break;
-				case MAP_BLOCK_CONVEX:
-					printf("\033[45m  \033[0m");
-					break;
-				case MAP_BLOCK_L_FLIP:
-					printf("\033[46m  \033[0m");
-					break;
-				case MAP_BLOCK_STEP_FLIP:
-					printf("\033[103m  \033[0m");
-					break;
-				default:
-					log_error("Unknown enum detected: %d", get(x, y, obj));
-					end(1);
-			}
+			printf("%s", get_color_from_block(get(x, y, obj)));
 		}
 		printf("|\n");
 	}
@@ -391,13 +404,43 @@ void output(SquareArray obj = map) {
 	}
 	printf("|\n");
 }
-inline char random_block() {
-	return (char)(rand() % (MAP_BLOCK_END - MAP_BLOCK - 1) + MAP_BLOCK + 1);
-}
 
-char now_block, next_block;
-bool will_output, will_generate_block, is_lost;
-int score, rotate_count;
+void output_next_block() {
+	SquareArray data = get_shape(next_block).datas[0];
+	int space_count = map.width - 3;
+	int min = (map.width - 4) / 2;
+	int max = min + 4;
+	Pos data_min = {2 - data.width / 2 + min, 2 - data.height / 2};
+	Pos data_max = {data_min.x + data.width, data_min.y + data.height};
+	for(int i = 0; i < space_count; i++) {
+		if(i == space_count - 1) {
+			printf("|");
+		} else {
+			printf(" ");
+		}
+	}
+	for(int i = min; i < max; i++) {
+		printf("--");
+	}
+	printf("|\n");
+	for(int y = 0; y < 4; y++) {
+		for(int i = 0; i < space_count; i++) {
+			if(i == space_count - 1) {
+				printf("|");
+			} else {
+				printf(" ");
+			}
+		}
+		for(int x = min; x < max; x++) {
+			if(x >= data_min.x && x < data_max.x && y >= data_min.y && y < data_max.y) {
+				printf("%s", get(x - data_min.x, y - data_min.y, data) == 1 ? get_color_from_block(next_block) : "  ");
+			} else {
+				printf("  ");
+			}
+		}
+		printf("|\n");
+	}
+}
 
 void generate_block() {
 	now_block = next_block;
@@ -719,8 +762,9 @@ void output_loop() {
  		if(if_output_buffer_area) {
 			output(buffer_area);
 		}
+		output_next_block();
 		output();
-		fprintf(stderr, "Score: %d\n%d\n", score, rotate_count);
+		fprintf(stderr, "Score: %d\n", score);
 		will_output = false;
 		if(is_lost) {
 			end(0);
