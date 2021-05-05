@@ -759,10 +759,10 @@ void output_loop() {
 			yield();
 		}
 		output_clear();
+		output_next_block();
  		if(if_output_buffer_area) {
 			output(buffer_area);
 		}
-		output_next_block();
 		output();
 		fprintf(stderr, "Score: %d\n", score);
 		will_output = false;
