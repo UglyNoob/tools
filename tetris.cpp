@@ -662,7 +662,7 @@ void rotate_block() {
 	bool cancel = false;
 	for(int i = 0; i < CONTROLLED_BLOCK_COUNT; i++) {
 		Pos p = controlled_block[i];
-		if(p.x >= map.width || p.x < 0 || p.y >= map.height || p.y < 0) {
+		if(p.x >= map.width || p.x < 0 || p.y >= map.height || p.y < -BUFFER_HEIGHT) {
 			cancel = true;
 			break;
 		}
@@ -808,8 +808,10 @@ void output_loop() {
 		output_next_block();
  		if(if_output_buffer_area) {
 			output(buffer_area);
+			output();
+		} else {
+			output_map_soft();
 		}
-		output_map_soft();
 		fprintf(stderr, "Score: %d\n", score);
 		will_output = false;
 		if(is_lost) {
