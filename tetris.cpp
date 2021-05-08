@@ -189,6 +189,7 @@ inline Shape get_shape(char block) {
 
 SquareArray map = {nullptr, DEFAULT_MAP_WIDTH, DEFAULT_MAP_HEIGHT};
 SquareArray buffer_area = {nullptr, DEFAULT_MAP_WIDTH, BUFFER_HEIGHT};
+SquareArray buffered_map = {nullptr, DEFAULT_MAP_WIDTH, DEFAULT_MAP_HEIGHT};
 inline char get(int x, int y, SquareArray obj) {
 	return obj.data[x + y * obj.width];
 }
@@ -265,6 +266,8 @@ Cmdline cmdline[CMDLINE_COUNT] = {
 			end(1);
 		}
 		buffer_area.width = map.width;
+		buffered_map.width = map.width;
+		buffered_map.height = map.height;
 	}},
 	{"--delay-time", "Set delay time between frames(ms)", 1, [](char **argv){
 		if(!parse_int(argv[0], &delay_time)) {
@@ -374,6 +377,43 @@ void output_clear() {
 	}
 	printf("\033[0;0H");
 }
+void output_map_soft() {
+	//printf("\033[1C\033[1B");
+	int cursor_x = 0, cursor_y = 0;
+	void (*gotoxy)(int, int, int, int) = [](int x, int y, int cursor_x, int cursor_y){
+		//printf("\033[%d%c\033[%d%c", abs(x - cursor_x) * 2, x > cursor_x ? 'C' : 'D', abs(y - cursor_y), y > cursor_y ? 'B' : 'A');
+		printf("\033[%d;%dH", y + 7, x * 2 + 2);
+	};
+	for(int y = 0; y < map.height; y++) {
+		for(int x = 0; x < map.width; x++) {
+			char map_value = get(x, y, map);
+			if(map_value != get(x, y, buffered_map)) {
+				gotoxy(x, y, cursor_x, cursor_y);
+				printf("%s", get_color_from_block(map_value));
+				cursor_x = x;
+				cursor_y = y;
+			}
+		}
+	}
+	printf("\033[%d;2H", map.height + 7);
+	for(int x = 0; x < map.width; x++) {
+		bool highlight = false;
+		for(int i = 0; i < CONTROLLED_BLOCK_COUNT; i++) {
+			if (controlled_block[i].x == x) {
+				highlight = true;
+				break;
+			}
+		}
+		if(highlight) {
+			printf("==");
+		} else {
+			printf("--");
+		}
+	}
+	printf("\033[%d;0H", map.height + 8);
+	fflush(stdout);
+	memcpy(buffered_map.data, map.data, sizeof(char) * map.width * map.height);
+}
 void output(SquareArray obj = map) {
 	printf("\033[K|");
 	for(int i = 0; i < obj.width; i++) {
@@ -403,6 +443,9 @@ void output(SquareArray obj = map) {
 		}
 	}
 	printf("|\n");
+	if(obj.data == map.data) {
+		memcpy(buffered_map.data, map.data, sizeof(char) * map.width * map.height);
+	}
 }
 
 void output_next_block() {
@@ -473,6 +516,7 @@ void init_game() {
 	if(first) {
 		map.data = new char[map.width * map.height];
 		buffer_area.data = new char[buffer_area.width * buffer_area.height];
+		buffered_map.data = new char[buffered_map.width * buffered_map.height];
 		first = false;
 	}
 	srand((unsigned int)time(NULL));
@@ -754,6 +798,8 @@ void game_loop() {
 
 void output_loop() {
 	output_clear();
+	output_next_block();
+	output();
 	while(true) {
 		while(!will_output) {
 			yield();
@@ -763,7 +809,7 @@ void output_loop() {
  		if(if_output_buffer_area) {
 			output(buffer_area);
 		}
-		output();
+		output_map_soft();
 		fprintf(stderr, "Score: %d\n", score);
 		will_output = false;
 		if(is_lost) {
