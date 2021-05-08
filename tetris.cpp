@@ -29,7 +29,7 @@ char getch() {
 
 const int CMDLINE_COUNT = 4;
 const int DEFAULT_MAP_WIDTH = 10;
-const int DEFAULT_MAP_HEIGHT = 15;
+const int DEFAULT_MAP_HEIGHT = 20;
 const int MINIMUM_MAP_WIDTH = 10;
 const int MINIMUM_MAP_HEIGHT = 10;
 const int BUFFER_HEIGHT = 4;
@@ -242,7 +242,7 @@ bool if_output_buffer_area = false;
 int delay_time = DEFAULT_DELAY_TIME;
 Cmdline cmdline[CMDLINE_COUNT] = {
 	{"--help", "Display this help and exit", 0, [](char **argv) {
-		fprintf(stderr, "%s: Console tetris game.\nUse arrawkeys LEFT DOWN RIGHT to move the block\nUse arrawkey UP to rotate the block\nUse SPACE to skip the block\nPress q to quit\nArguments:\n", argv[0]);
+		fprintf(stderr, "%s: Console tetris game.\nUse arrawkey LEFT DOWN RIGHT to move the block\nUse arrawkey UP to rotate the block\nUse SPACE to skip the block\nPress q to quit\nArguments:\n", argv[0]);
 		for(int i = 0; i < CMDLINE_COUNT; i++) {
 			fprintf(stderr, "\t%s\n\t\t%s\n", cmdline[i].name, cmdline[i].description);
 		}
@@ -379,19 +379,15 @@ void output_clear() {
 }
 void output_map_soft() {
 	//printf("\033[1C\033[1B");
-	int cursor_x = 0, cursor_y = 0;
-	void (*gotoxy)(int, int, int, int) = [](int x, int y, int cursor_x, int cursor_y){
-		//printf("\033[%d%c\033[%d%c", abs(x - cursor_x) * 2, x > cursor_x ? 'C' : 'D', abs(y - cursor_y), y > cursor_y ? 'B' : 'A');
+	void (*gotoxy)(int, int) = [](int x, int y){
 		printf("\033[%d;%dH", y + 7, x * 2 + 2);
 	};
 	for(int y = 0; y < map.height; y++) {
 		for(int x = 0; x < map.width; x++) {
 			char map_value = get(x, y, map);
 			if(map_value != get(x, y, buffered_map)) {
-				gotoxy(x, y, cursor_x, cursor_y);
+				gotoxy(x, y);
 				printf("%s", get_color_from_block(map_value));
-				cursor_x = x;
-				cursor_y = y;
 			}
 		}
 	}
@@ -740,7 +736,11 @@ void process_input() {
 	}
 }
 void check_map() {
-	bool *all_block_line = new bool[map.height];
+	static bool *all_block_line, first = true;
+	if(first) {
+		first = false;
+		all_block_line = new bool[map.height];
+	}
 	memset(all_block_line, true, sizeof(bool) * map.height);
 	int all_block_line_count = map.height;
 	for(int y = map.height - 1; y >= 0; y--) {
@@ -750,6 +750,23 @@ void check_map() {
 				all_block_line_count--;
 				break;
 			}
+		}
+	}
+	if(all_block_line_count != 0) {
+		int i = map.width / 2;
+		if(map.width % 2 == 0) {
+			i--;
+		}
+		
+		for(; i >= 0; i--) {
+			for(int y = 0; y < map.height; y++) {
+				if(all_block_line[y]) {
+					set(MAP_EMPTY, i, y, map);
+					set(MAP_EMPTY, map.width - i - 1, y, map);
+				}
+			}
+			will_output = true;
+			delay(delay_time / map.width);
 		}
 	}
 	switch(all_block_line_count) {
@@ -781,7 +798,6 @@ void check_map() {
 			}
 		}
 	}
-	delete[] all_block_line;
 }
 void game_loop() {
 	while(true) {
