@@ -7,7 +7,8 @@
 #include <thread>
 #include <chrono>
 
-#ifdef WIN32
+#ifdef __WIN32
+#include <windows.h>
 #include <conio.h>
 #else
 #include <termios.h>
@@ -27,7 +28,7 @@ char getch() {
 #endif
 
 
-const int CMDLINE_COUNT = 4;
+const int CMDLINE_COUNT = 5;
 const int DEFAULT_MAP_WIDTH = 10;
 const int DEFAULT_MAP_HEIGHT = 20;
 const int MINIMUM_MAP_WIDTH = 10;
@@ -238,11 +239,11 @@ struct Cmdline {
 	int argc;
 	void (*act)(char **argv);
 };
-bool if_output_buffer_area = false;
+bool if_output_buffer_area = false, output_hard_mode = false;
 int delay_time = DEFAULT_DELAY_TIME;
 Cmdline cmdline[CMDLINE_COUNT] = {
 	{"--help", "Display this help and exit", 0, [](char **argv) {
-		fprintf(stderr, "%s: Console tetris game.\nPress LEFT DOWN RIGHT to move the block\nPress UP to rotate the block\nPress SPACE to skip the block\nPress q to quit\nArguments:\n", argv[0]);
+		fprintf(stderr, "%s: Console tetris game.\nPress \"LEFT\" \"DOWN\" \"RIGHT\" or \"A\" \"S\" \"D\" to move the block\nPress \"UP\" or \"W\"to rotate the block\nPress \"SPACE\" to skip the block\nPress \"Q\" to quit\nArguments:\n", argv[0]);
 		for(int i = 0; i < CMDLINE_COUNT; i++) {
 			fprintf(stderr, "\t%s\n\t\t%s\n", cmdline[i].name, cmdline[i].description);
 		}
@@ -274,6 +275,9 @@ Cmdline cmdline[CMDLINE_COUNT] = {
 			log_error("Delay time should be an integer, but got %s", argv[0]);
 			end(1);
 		}
+	}},
+	{"--hard-mode", "Hard mode output(Support Windows)", 0, [](char **argv) {
+		output_hard_mode = true;
 	}},
 	{"--show-buffer-area", "Output buffer area", 0, [](char **argv) {
 		if_output_buffer_area = true;
@@ -334,48 +338,116 @@ char now_block, next_block;
 bool will_output, will_generate_block, is_lost;
 int score, rotate_count;
 
-const char* get_color_from_block(char block) {
+void output_color_block(char block) {
+#ifdef __WIN32
+	HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
+	CONSOLE_SCREEN_BUFFER_INFO info;
+	GetConsoleScreenBufferInfo(handle, &info);
+	WORD general = info.wAttributes;
+	
 	switch(block) {
 		case MAP_EMPTY:
-			return "  ";
+			printf("  ");
 			break;
 		case MAP_BLOCK:
-			return "\033[47m  \033[0m";
+			SetConsoleTextAttribute(handle, BACKGROUND_BLUE | BACKGROUND_RED | BACKGROUND_GREEN);
+			printf("  ");
+			SetConsoleTextAttribute(handle, general);
 			break;
 		case MAP_BLOCK_L:
-			return "\033[41m  \033[0m";
+			SetConsoleTextAttribute(handle, BACKGROUND_RED);
+			printf("  ");
+			SetConsoleTextAttribute(handle, general);
 			break;
 		case MAP_BLOCK_LONG:
-			return "\033[42m  \033[0m";
+			SetConsoleTextAttribute(handle, BACKGROUND_GREEN);
+			printf("  ");
+			SetConsoleTextAttribute(handle, general);
 			break;
 		case MAP_BLOCK_SQUARE:
-			return "\033[43m  \033[0m";
+			SetConsoleTextAttribute(handle, 0xE0);
+			printf("  ");
+			SetConsoleTextAttribute(handle, general);
 			break;
 		case MAP_BLOCK_STEP:
-			return "\033[44m  \033[0m";
+			SetConsoleTextAttribute(handle, BACKGROUND_BLUE);
+			printf("  ");
+			SetConsoleTextAttribute(handle, general);
 			break;
 		case MAP_BLOCK_CONVEX:
-			return "\033[45m  \033[0m";
+			SetConsoleTextAttribute(handle, BACKGROUND_RED | BACKGROUND_RED);
+			printf("  ");
+			SetConsoleTextAttribute(handle, general);
 			break;
 		case MAP_BLOCK_L_FLIP:
-			return "\033[46m  \033[0m";
+			SetConsoleTextAttribute(handle, BACKGROUND_GREEN | BACKGROUND_BLUE);
+			printf("  ");
+			SetConsoleTextAttribute(handle, general);
 			break;
 		case MAP_BLOCK_STEP_FLIP:
-			return "\033[103m  \033[0m";
+			SetConsoleTextAttribute(handle, BACKGROUND_RED | BACKGROUND_GREEN);
+			printf("  ");
+			SetConsoleTextAttribute(handle, general);
 			break;
 		default:
-			log_error("Unknown enum detected: %d", block);
+			log_error("Unknown map enum detected: %d", block);
 			end(1);
 	}
-	return nullptr;
+#else
+	switch(block) {
+		case MAP_EMPTY:
+			printf("  ");
+			break;
+		case MAP_BLOCK:
+			printf("\033[47m  \033[0m");
+			break;
+		case MAP_BLOCK_L:
+			printf("\033[41m  \033[0m");
+			break;
+		case MAP_BLOCK_LONG:
+			printf("\033[42m  \033[0m");
+			break;
+		case MAP_BLOCK_SQUARE:
+			printf("\033[43m  \033[0m");
+			break;
+		case MAP_BLOCK_STEP:
+			printf("\033[44m  \033[0m");
+			break;
+		case MAP_BLOCK_CONVEX:
+			printf("\033[45m  \033[0m");
+			break;
+		case MAP_BLOCK_L_FLIP:
+			printf("\033[46m  \033[0m");
+			break;
+		case MAP_BLOCK_STEP_FLIP:
+			printf("\033[103m  \033[0m");
+			break;
+		default:
+			log_error("Unknown map enum detected: %d", block);
+			end(1);
+	}
+#endif
 }
 void output_clear() {
+#ifdef __WIN32
+	static bool first = true;
+	HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
+	COORD pos;
+	pos.X = 0;
+	pos.Y = 0;
+	SetConsoleCursorPosition(handle, pos);
+	if(first) {
+		system("cls");
+		first = false;
+	}
+#else
 	static bool first = true;
 	if(first) {
-		printf("\033[2J\033[0;0H");
+		printf("\033[2J");
 		first = false;
 	}
 	printf("\033[0;0H");
+#endif
 }
 void output_map_soft() {
 	void (*gotoxy)(int, int) = [](int x, int y){
@@ -386,7 +458,7 @@ void output_map_soft() {
 			char map_value = get(x, y, map);
 			if(map_value != get(x, y, buffered_map)) {
 				gotoxy(x, y);
-				printf("%s", get_color_from_block(map_value));
+				output_color_block(map_value);
 			}
 		}
 	}
@@ -410,19 +482,29 @@ void output_map_soft() {
 	memcpy(buffered_map.data, map.data, sizeof(char) * map.width * map.height);
 }
 void output(SquareArray obj = map) {
-	printf("\033[K|");
+#ifdef __WIN32
+	const char clear_line[] = "";
+	HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
+	CONSOLE_CURSOR_INFO cursor_info;
+	cursor_info.bVisible = false;
+	cursor_info.dwSize = 1;
+	SetConsoleCursorInfo(handle, &cursor_info);
+#else
+	const char clear_line[] = "\033[K";
+#endif
+	printf("%s|", clear_line);
 	for(int i = 0; i < obj.width; i++) {
 		printf("==");
 	}
 	printf("|\n");
 	for(int y = 0; y < obj.height; y++) {
-		printf("\033[K|");
+		printf("%s|", clear_line);
 		for(int x = 0; x < obj.width; x++) {
-			printf("%s", get_color_from_block(get(x, y, obj)));
+			output_color_block(get(x, y, obj));
 		}
 		printf("|\n");
 	}
-	printf("\033[K|");
+	printf("%s|", clear_line);
 	for(int x = 0; x < obj.width; x++) {
 		bool highlight = false;
 		for(int i = 0; i < CONTROLLED_BLOCK_COUNT; i++) {
@@ -441,6 +523,10 @@ void output(SquareArray obj = map) {
 	if(obj.data == map.data) {
 		memcpy(buffered_map.data, map.data, sizeof(char) * map.width * map.height);
 	}
+#ifdef __WIN32
+	cursor_info.bVisible = true;
+	SetConsoleCursorInfo(handle, &cursor_info);
+#endif
 }
 
 void output_next_block() {
@@ -471,7 +557,11 @@ void output_next_block() {
 		}
 		for(int x = min; x < max; x++) {
 			if(x >= data_min.x && x < data_max.x && y >= data_min.y && y < data_max.y) {
-				printf("%s", get(x - data_min.x, y - data_min.y, data) == 1 ? get_color_from_block(next_block) : "  ");
+				if(get(x - data_min.x, y - data_min.y, data) == 1) {
+					output_color_block(next_block);
+				} else {
+					printf("  ");
+				}
 			} else {
 				printf("  ");
 			}
@@ -683,14 +773,32 @@ void rotate_block() {
 }
 
 void process_input() {
-	int arraw_key_level = 0;
+	int arrow_key_level = 0;
 	while(true) {
 		char ch = getch();
-		if(ch == 27 && arraw_key_level == 0) {//PROCESS ARROWKEYS
-			arraw_key_level = 1;
-		} else if(ch == 91 && arraw_key_level == 1) {
-			arraw_key_level = 2;
-		} else if((ch >= 'A' && ch <= 'D') && arraw_key_level == 2) {
+#ifdef __WIN32
+		if(ch == -32 || ch == 0) {
+			ch = getch();
+			switch(ch) {
+				case 72:
+					rotate_block();
+					break;
+				case 80:
+					move_down();
+					break;
+				case 77:
+					move_right();
+					break;
+				case 75:
+					move_left();
+					break;
+			}
+#else
+		if(ch == 27 && arrow_key_level == 0) {//PROCESS ARROWKEYS
+			arrow_key_level = 1;
+		} else if(ch == 91 && arrow_key_level == 1) {
+			arrow_key_level = 2;
+		} else if((ch >= 'A' && ch <= 'D') && arrow_key_level == 2) {
 			switch(ch) {
 				case 'A':
 					rotate_block();
@@ -705,9 +813,10 @@ void process_input() {
 					move_left();
 					break;
 			}
-			arraw_key_level = 0;
+			arrow_key_level = 0;
+#endif
 		} else {//PROCESS NORMAL KEYS
-			arraw_key_level = 0;
+			arrow_key_level = 0;
 			switch(ch) {
 				case ' ':
 					while(!will_generate_block){
@@ -727,6 +836,21 @@ void process_input() {
 					move_right();
 					break;
 				case 'a':
+					move_left();
+					break;
+				case 'Q':
+					is_lost = true;
+					break;
+				case 'W':
+					rotate_block();
+					break;
+				case 'S':
+					move_down();
+					break;
+				case 'D':
+					move_right();
+					break;
+				case 'A':
 					move_left();
 					break;
 			}
@@ -825,7 +949,11 @@ void output_loop() {
 			output(buffer_area);
 			output();
 		} else {
-			output_map_soft();
+			if(output_hard_mode) {
+				output();
+			} else {
+				output_map_soft();
+			}
 		}
 		fprintf(stderr, "Score: %d\n", score);
 		will_output = false;

@@ -31,8 +31,6 @@ const int UP=0;
 const int DOWN=1;
 const int LEFT=2;
 const int RIGHT=3;
-const int CREATE_WINDOW=4;
-const int DESTROY_WINDOW=5;
 const int MAP_EMPTY=6;
 const int MAP_APPLE=7;
 const int MAP_SNAKE=8;
@@ -41,7 +39,7 @@ const int WINDOW_HEIGHT=80;
 const int DEFAULT_MAP_WIDTH=30;
 const int DEFAULT_MAP_HEIGHT=30;
 const int step_per_sec=3;
-const char *WINDOW_NAME="The Snake Game";
+const char WINDOW_NAME[]="The Snake Game";
 const color APPLE_COLOR={1.f,0.25f,0.25f,1.f};
 const color HEAD_COLOR={0.25f,0.25f,255,1.f};
 const color BODY_COLOR={0.5f,0.5f,0.9f,0.9f};
@@ -326,7 +324,7 @@ void console_mode_input(){/*
 	}*/
 }
 
-void output_map(){//JUST FOR TESTING
+void output_map(){
 #ifdef __WIN32
 	HANDLE handle=GetStdHandle(STD_OUTPUT_HANDLE);
 	CONSOLE_SCREEN_BUFFER_INFO info;
