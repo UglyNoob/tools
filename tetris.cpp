@@ -104,16 +104,16 @@ const Shape shapes[] = {//IN ORDER
 		{1, 0}
 	}},
 	{2, new SquareArray[2]{{new char[4] {//MAP_BLOCK_LONG
+		1, 1, 1, 1
+	}, 4, 1},{new char[4]{
 		1,
 		1,
 		1,
 		1
-	}, 1, 4},{new char[4]{
-		1, 1, 1, 1
-	}, 4, 1}},
+	}, 1, 4}},
 	new Pos[2]{
-		{-2, 2},
-		{2, -2}
+		{1, -1},
+		{-1, 1}
 	}},
 	{1, new SquareArray[1]{{new char[4] {//MAP_BLOCK_SQUARE
 		1, 1,
@@ -242,7 +242,7 @@ bool if_output_buffer_area = false;
 int delay_time = DEFAULT_DELAY_TIME;
 Cmdline cmdline[CMDLINE_COUNT] = {
 	{"--help", "Display this help and exit", 0, [](char **argv) {
-		fprintf(stderr, "%s: Console tetris game.\nUse arrawkey LEFT DOWN RIGHT to move the block\nUse arrawkey UP to rotate the block\nUse SPACE to skip the block\nPress q to quit\nArguments:\n", argv[0]);
+		fprintf(stderr, "%s: Console tetris game.\nPress LEFT DOWN RIGHT to move the block\nPress UP to rotate the block\nPress SPACE to skip the block\nPress q to quit\nArguments:\n", argv[0]);
 		for(int i = 0; i < CMDLINE_COUNT; i++) {
 			fprintf(stderr, "\t%s\n\t\t%s\n", cmdline[i].name, cmdline[i].description);
 		}
@@ -378,9 +378,8 @@ void output_clear() {
 	printf("\033[0;0H");
 }
 void output_map_soft() {
-	//printf("\033[1C\033[1B");
 	void (*gotoxy)(int, int) = [](int x, int y){
-		printf("\033[%d;%dH", y + 7, x * 2 + 2);
+		printf("\033[%d;%dH", y + 6, x * 2 + 2);
 	};
 	for(int y = 0; y < map.height; y++) {
 		for(int x = 0; x < map.width; x++) {
@@ -391,7 +390,7 @@ void output_map_soft() {
 			}
 		}
 	}
-	printf("\033[%d;2H", map.height + 7);
+	printf("\033[%d;2H", map.height + 6);
 	for(int x = 0; x < map.width; x++) {
 		bool highlight = false;
 		for(int i = 0; i < CONTROLLED_BLOCK_COUNT; i++) {
@@ -406,7 +405,7 @@ void output_map_soft() {
 			printf("--");
 		}
 	}
-	printf("\033[%d;0H", map.height + 8);
+	printf("\033[%d;0H", map.height + 7);
 	fflush(stdout);
 	memcpy(buffered_map.data, map.data, sizeof(char) * map.width * map.height);
 }
@@ -449,7 +448,7 @@ void output_next_block() {
 	int space_count = map.width - 3;
 	int min = (map.width - 4) / 2;
 	int max = min + 4;
-	Pos data_min = {2 - data.width / 2 + min, 2 - data.height / 2};
+	Pos data_min = {2 - data.width / 2 + min, (3 - data.height) / 2};
 	Pos data_max = {data_min.x + data.width, data_min.y + data.height};
 	for(int i = 0; i < space_count; i++) {
 		if(i == space_count - 1) {
@@ -462,7 +461,7 @@ void output_next_block() {
 		printf("--");
 	}
 	printf("|\n");
-	for(int y = 0; y < 4; y++) {
+	for(int y = 0; y < 3; y++) {
 		for(int i = 0; i < space_count; i++) {
 			if(i == space_count - 1) {
 				printf("|");
