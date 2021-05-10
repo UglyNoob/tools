@@ -54,6 +54,9 @@ const char MAP_BLOCK_END = 108;
 inline void delay(int ms) {
 	std::this_thread::sleep_for(std::chrono::milliseconds(ms));
 }
+inline void delay_us(int us) {
+	std::this_thread::sleep_for(std::chrono::microseconds(us));
+}
 inline void yield() {
 	std::this_thread::yield();
 }
@@ -922,7 +925,7 @@ void output_loop() {
 	output();
 	while(true) {
 		while(!will_output) {
-			yield();
+			delay_us(1);
 		}
 		output_clear();
 		output_next_block();
@@ -947,7 +950,7 @@ void output_loop() {
 int main(int argc, char **argv) {
 	parse_cmdline(argc, argv);
 	init_game();
-	std::thread t(process_input);
+ 	std::thread t(process_input);
 	std::thread t2(output_loop);
 	game_loop();
 	return 0;
