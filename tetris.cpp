@@ -191,6 +191,7 @@ inline Shape get_shape(char block) {
 SquareArray map = {nullptr, DEFAULT_MAP_WIDTH, DEFAULT_MAP_HEIGHT};
 SquareArray buffer_area = {nullptr, DEFAULT_MAP_WIDTH, BUFFER_HEIGHT};
 SquareArray buffered_map = {nullptr, DEFAULT_MAP_WIDTH, DEFAULT_MAP_HEIGHT};
+bool map_lock = false;
 inline char get(int x, int y, SquareArray obj) {
 	return obj.data[x + y * obj.width];
 }
@@ -205,6 +206,7 @@ inline char get_map(int x, int y) {
 	}
 }
 inline void set_map(char value, int x, int y) {
+	while(map_lock) yield();
 	if(y >= 0) {
 		set(value, x, y, map);
 	} else {
@@ -450,6 +452,7 @@ void output_clear() {
 #endif
 }
 void output_map_soft() {
+	map_lock = true;
 	void (*gotoxy)(int, int) = [](int x, int y){
 		printf("\033[%d;%dH", y + 6, x * 2 + 2);
 	};
@@ -480,8 +483,10 @@ void output_map_soft() {
 	printf("\033[%d;0H", map.height + 7);
 	fflush(stdout);
 	memcpy(buffered_map.data, map.data, sizeof(char) * map.width * map.height);
+	map_lock = false;
 }
 void output(SquareArray obj = map) {
+	map_lock = true;
 #ifdef __WIN32
 	const char clear_line[] = "";
 	HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -527,6 +532,7 @@ void output(SquareArray obj = map) {
 	cursor_info.bVisible = true;
 	SetConsoleCursorInfo(handle, &cursor_info);
 #endif
+	map_lock = false;
 }
 
 void output_next_block() {
@@ -775,29 +781,15 @@ void rotate_block() {
 void process_input() {
 	int arrow_key_level = 0;
 	while(true) {
-		char ch = getch();
-#ifdef __WIN32
-		if(ch == -32 || ch == 0) {
-			ch = getch();
-			switch(ch) {
-				case 72:
-					rotate_block();
-					break;
-				case 80:
-					move_down();
-					break;
-				case 77:
-					move_right();
-					break;
-				case 75:
-					move_left();
-					break;
-			}
-#else
-		if(ch == 27 && arrow_key_level == 0) {//PROCESS ARROWKEYS
+		unsigned char ch = getch();
+		if(ch == '\033' && arrow_key_level == 0) {//PROCESS ARROWKEYS
 			arrow_key_level = 1;
-		} else if(ch == 91 && arrow_key_level == 1) {
+			will_output = true;
+			continue;
+		} else if(ch == '[' && arrow_key_level == 1) {
 			arrow_key_level = 2;
+			will_output = true;
+			continue;
 		} else if((ch >= 'A' && ch <= 'D') && arrow_key_level == 2) {
 			switch(ch) {
 				case 'A':
@@ -814,46 +806,35 @@ void process_input() {
 					break;
 			}
 			arrow_key_level = 0;
-#endif
-		} else {//PROCESS NORMAL KEYS
-			arrow_key_level = 0;
-			switch(ch) {
-				case ' ':
-					while(!will_generate_block){
-						move_down();
-					}
-					break;
-				case 'q':
-					is_lost = true;
-					break;
-				case 'w':
-					rotate_block();
-					break;
-				case 's':
+			will_output = true;
+			continue;
+		}
+		//PROCESS NORMAL KEYS
+		arrow_key_level = 0;
+		if('A' >= ch && 'Z' <= ch) {
+			ch += 'a' - 'A';
+		}
+		switch(ch) {
+			case ' ':
+				while(!will_generate_block){
 					move_down();
-					break;
-				case 'd':
-					move_right();
-					break;
-				case 'a':
-					move_left();
-					break;
-				case 'Q':
-					is_lost = true;
-					break;
-				case 'W':
-					rotate_block();
-					break;
-				case 'S':
-					move_down();
-					break;
-				case 'D':
-					move_right();
-					break;
-				case 'A':
-					move_left();
-					break;
-			}
+				}
+				break;
+			case 'q':
+				is_lost = true;
+				break;
+			case 'w':
+				rotate_block();
+				break;
+			case 's':
+				move_down();
+				break;
+			case 'd':
+				move_right();
+				break;
+			case 'a':
+				move_left();
+				break;
 		}
 		will_output = true;
 	}
@@ -884,8 +865,8 @@ void check_map() {
 		for(; i >= 0; i--) {
 			for(int y = 0; y < map.height; y++) {
 				if(all_block_line[y]) {
-					set(MAP_EMPTY, i, y, map);
-					set(MAP_EMPTY, map.width - i - 1, y, map);
+					set_map(MAP_EMPTY, i, y);
+					set_map(MAP_EMPTY, map.width - i - 1, y);
 				}
 			}
 			will_output = true;
