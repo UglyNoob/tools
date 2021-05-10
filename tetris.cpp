@@ -784,7 +784,7 @@ void rotate_block() {
 void process_input() {
 	int arrow_key_level = 0;
 	while(true) {
-		unsigned char ch = getch();
+		char ch = getch();
 		if(ch == '\033' && arrow_key_level == 0) {//PROCESS ARROWKEYS
 			arrow_key_level = 1;
 			will_output = true;
@@ -814,7 +814,7 @@ void process_input() {
 		}
 		//PROCESS NORMAL KEYS
 		arrow_key_level = 0;
-		if('A' >= ch && 'Z' <= ch) {
+		if('A' <= ch && 'Z' >= ch) {
 			ch += 'a' - 'A';
 		}
 		switch(ch) {
