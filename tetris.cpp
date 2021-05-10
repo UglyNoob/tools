@@ -950,7 +950,7 @@ void output_loop() {
 int main(int argc, char **argv) {
 	parse_cmdline(argc, argv);
 	init_game();
- 	std::thread t(process_input);
+	std::thread t(process_input);
 	std::thread t2(output_loop);
 	game_loop();
 	return 0;
