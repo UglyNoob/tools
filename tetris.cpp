@@ -626,10 +626,14 @@ void init_game() {
 	rotate_count = 0;
 }
 
+bool doing = false;
+
 void move_down() {
 	if(will_generate_block) {
 		return;
 	}
+	while(doing) yield();
+	doing = true;
 	for(int i = 0; i < CONTROLLED_BLOCK_COUNT; i++) {
 		Pos &p = controlled_block[i];
 		set_map(MAP_EMPTY, p.x, p.y);
@@ -658,11 +662,14 @@ void move_down() {
 		Pos p = controlled_block[i];
 		set_map(now_block, p.x, p.y);
 	}
+	doing = false;
 }
 void move_left() {
 	if(will_generate_block) {
 		return;
 	}
+	while(doing) yield();
+	doing = true;
 	for(int i = 0; i < CONTROLLED_BLOCK_COUNT; i++) {
 		Pos &p = controlled_block[i];
 		set_map(MAP_EMPTY, p.x, p.y);
@@ -690,11 +697,14 @@ void move_left() {
 		Pos p = controlled_block[i];
 		set_map(now_block, p.x, p.y);
 	}
+	doing = false;
 }
 void move_right() {
 	if(will_generate_block) {
 		return;
 	}
+	while(doing) yield();
+	doing = true;
 	for(int i = 0; i < CONTROLLED_BLOCK_COUNT; i++) {
 		Pos &p = controlled_block[i];
 		set_map(MAP_EMPTY, p.x, p.y);
@@ -722,11 +732,14 @@ void move_right() {
 		Pos p = controlled_block[i];
 		set_map(now_block, p.x, p.y);
 	}
+	doing = false;
 }
 void rotate_block() {
 	if(will_generate_block || get_shape(now_block).count == 1) {
 		return;
 	}
+	while(doing) yield();
+	doing = true;
 	Pos old_controlled_block[CONTROLLED_BLOCK_COUNT], min = {2147483647, 2147483647};
 	for(int i = 0; i < CONTROLLED_BLOCK_COUNT; i++) {
 		Pos p = controlled_block[i];
@@ -779,6 +792,7 @@ void rotate_block() {
 		Pos p = controlled_block[i];
 		set_map(now_block, p.x, p.y);
 	}
+	doing = false;
 }
 
 void process_input() {
