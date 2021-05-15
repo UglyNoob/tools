@@ -12,7 +12,6 @@
 #include <conio.h>
 #else
 #include <termios.h>
-
 char getch() {
 	termios oldt, newt;
 	tcgetattr(0, &oldt);
@@ -24,7 +23,6 @@ char getch() {
 	tcsetattr(0, TCSANOW, &oldt);
 	return value;
 }
-
 #endif
 
 
@@ -858,6 +856,8 @@ void process_input() {
 }
 void check_map() {
 	static bool *all_block_line, first = true;
+	while(doing) yield();
+	doing = true;
 	if(first) {
 		first = false;
 		all_block_line = new bool[map.height];
@@ -919,6 +919,7 @@ void check_map() {
 			}
 		}
 	}
+	doing = false;
 }
 void game_loop() {
 	while(true) {
