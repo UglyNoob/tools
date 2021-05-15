@@ -577,7 +577,11 @@ void output_next_block() {
 	}
 }
 
+
+bool doing = false;
 void generate_block() {
+	while(doing) yield();
+	doing = true;
 	now_block = next_block;
 	next_block = random_block();
 	rotate_count = 0;
@@ -601,6 +605,7 @@ void generate_block() {
 			}
 		}
 	}
+	doing = false;
 }
 
 void init_game() {
@@ -623,8 +628,6 @@ void init_game() {
 	score = 0;
 	rotate_count = 0;
 }
-
-bool doing = false;
 
 void move_down() {
 	if(will_generate_block) {
