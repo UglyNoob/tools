@@ -435,7 +435,7 @@ void output_map_soft() {
 		}
 	}
 #ifdef __WIN32
-	c = {0, (short)(map.height + 5)};
+	c = {1, (short)(map.height + 5)};
 	SetConsoleCursorPosition(handle, c);
 #else
 	printf("\033[%d;2H", map.height + 6);
