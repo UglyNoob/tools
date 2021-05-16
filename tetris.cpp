@@ -7,6 +7,8 @@
 #include <thread>
 #include <chrono>
 
+#include "utils.h"
+
 #ifdef __WIN32
 #include <windows.h>
 #include <conio.h>
@@ -25,8 +27,6 @@ char getch() {
 }
 #endif
 
-
-const int CMDLINE_COUNT = 5;
 const int DEFAULT_MAP_WIDTH = 10;
 const int DEFAULT_MAP_HEIGHT = 20;
 const int MINIMUM_MAP_WIDTH = 10;
@@ -57,14 +57,6 @@ inline void delay_us(int us) {
 }
 inline void yield() {
 	std::this_thread::yield();
-}
-void log_error(const char *format, ...) {
-	va_list args;
-	va_start(args, format);
-	fprintf(stderr, "\033[1;91m");
-	vfprintf(stderr, format, args);
-	fprintf(stderr, "\033[0m\n");
-	va_end(args);
 }
 void end(int code) {
 	exit(code);
@@ -217,47 +209,32 @@ inline void set_map(char value, int x, int y) {
 inline bool is_block(char value) {
 	return value > MAP_BLOCK && value < MAP_BLOCK_END;
 }
-/*
- * Return value: True means success
- */
-bool parse_int(const char *num_str, int *output) {
-	int result = 0;
-	char *p = (char *)num_str;
-	while(*p) {
-		if(*p < '0' || *p > '9') {
-			return false;
-		}
-		result += *p - '0';
-		result *= 10;
-		p++;
-	}
-	result /= 10;
-	*output = result;
-	return true;
-}
-
-struct Cmdline {
-	const char *name;
-	const char *description;
-	int argc;
-	void (*act)(char **argv);
-};
 bool if_output_buffer_area = false, output_hard_mode = false;
 int delay_time = DEFAULT_DELAY_TIME;
-Cmdline cmdline[CMDLINE_COUNT] = {
-	{"--help", "Display this help and exit", 0, [](char **argv) {
-		fprintf(stderr, "%s: Console tetris game.\nPress \"LEFT\" \"DOWN\" \"RIGHT\" or \"A\" \"S\" \"D\" to move the block\nPress \"UP\" or \"W\"to rotate the block\nPress \"SPACE\" to skip the block\nPress \"Q\" to quit\nArguments:\n", argv[0]);
-		for(int i = 0; i < CMDLINE_COUNT; i++) {
-			fprintf(stderr, "\t%s\n\t\t%s\n", cmdline[i].name, cmdline[i].description);
-		}
+
+void process_argument(int argc, char **argv) {
+	static ArgumentFactory af;
+	Argument help, map_size, delay_time_arg, hard_mode, show_buffer_area;
+	help.add_name("--help");
+	help.set_argc(0);
+	help.set_act_func([](char **argv) {
+		af.output_help(2, argv[0], ": Console tetris game.\nPress \"LEFT\" \"DOWN\" \"RIGHT\" or \"A\" \"S\" \"D\" to move the block.\nPress \"UP\" or \"W\"to rotate the block.\nPress \"SPACE\" to skip the block.\nPress \"Q\" to quit.");
 		end(0);
-	}},
-	{"--map-size", "[width] [height]: Set the size of the map", 2, [](char **argv) {
-		if(!parse_int(argv[0], &map.width)) {
+	});
+	help.set_description("Display this help and exit");
+	af.register_argument(&help);
+
+	map_size.add_name("--map-size");
+	map_size.set_argc(2);
+	map_size.set_act_func([](char **argv) {
+		bool success;
+		map.width = parse_int(argv[0], &success);
+		if(!success) {
 			log_error("The width of the map should be an integer, but got %s", argv[0]);
 			end(1);
 		}
-		if(!parse_int(argv[1], &map.height)) {
+		map.height = parse_int(argv[1], &success);
+		if(!success) {
 			log_error("The height of the map should be an integer, but got %s", argv[1]);
 			end(1);
 		}
@@ -272,66 +249,47 @@ Cmdline cmdline[CMDLINE_COUNT] = {
 		buffer_area.width = map.width;
 		buffered_map.width = map.width;
 		buffered_map.height = map.height;
-	}},
-	{"--delay-time", "Set delay time between frames(ms)", 1, [](char **argv){
-		if(!parse_int(argv[0], &delay_time)) {
-			log_error("Delay time should be an integer, but got %s", argv[0]);
-			end(1);
-		}
-	}},
-	{"--hard-mode", "Hard mode output(Support Windows)", 0, [](char **argv) {
-		output_hard_mode = true;
-	}},
-	{"--show-buffer-area", "Output buffer area", 0, [](char **argv) {
-		if_output_buffer_area = true;
-	}}
-};
+	});
+	map_size.set_description("[width] [height]: Set the size of the map");
+	af.register_argument(&map_size);
 
-void parse_cmdline(int argc, char **argv) {
-	bool called[CMDLINE_COUNT] = {false};
-	char **cmdline_argv[CMDLINE_COUNT] = {nullptr};
-	for(int i = 1; i < argc; i++) {
-		if(argv[i][0] != '-') {
-			log_error("Unexcepted %s. Type \"%s --help\" for usage.", argv[i], argv[0]);
+	delay_time_arg.add_name("--delay-time");
+	delay_time_arg.set_argc(1);
+	delay_time_arg.set_act_func([](char **argv){
+		bool success;
+		delay_time = parse_int(argv[0], &success);
+		if(!success) {
+			log_error("The time to delay should be an integer, but got %s", argv[0]);
 			end(1);
 		}
-		bool cmdline_exist = false;
-		for(int j = 0; j < CMDLINE_COUNT; j++) {
-			if(strcmp(argv[i], cmdline[j].name) == 0) {
-				cmdline_exist = true;
-				int given_argc = 0;
-				while(i + given_argc + 1 < argc) {
-					if(argv[i + given_argc + 1][0] != '-') {
-						given_argc ++;
-					} else {
-						break;
-					}
-				}
-				if(given_argc != cmdline[j].argc) {
-					log_error("Cmdline %s needs %d argument%s, but got %d", cmdline[j].name, cmdline[j].argc, cmdline[j].argc <= 1 ? "" : "s", given_argc);
-					end(1);
-				}
-				called[j] = true;
-				if(cmdline[j].argc == 0) {
-					cmdline_argv[j] = argv;
-				} else {
-					cmdline_argv[j] = argv + i + 1;
-				}
-				i += given_argc;
-			}
-		}
-		if(!cmdline_exist) {
-			log_error("Unknown cmdline %s. Type \"%s --help\" for usage.", argv[i], argv[0]);
+		if(delay_time < 0) {
+			log_error("The time to delay is too small: %d", delay_time);
 			end(1);
 		}
-	}
-	for(int i = 0; i < CMDLINE_COUNT; i++) {
-		if(called[i]) {
-			cmdline[i].act(cmdline_argv[i]);
-		}
+	});
+	delay_time_arg.set_description("Set time to delay between frames(ms)");
+	af.register_argument(&delay_time_arg);
+
+	hard_mode.add_name("--hard-mode");
+	hard_mode.set_argc(0);
+	hard_mode.set_act_func([](char **argv) {
+		output_hard_mode = true;
+	});
+	hard_mode.set_description("Hard mode output(Support Windows)");
+	af.register_argument(&hard_mode);
+
+	show_buffer_area.add_name("--show-buffer-area");
+	show_buffer_area.set_argc(0);
+	show_buffer_area.set_act_func([](char **argv) {
+		if_output_buffer_area = true;
+	});
+	show_buffer_area.set_description("Output buffer area(FOR DEBUG)");
+	af.register_argument(&show_buffer_area);
+
+	if(!af.process(argc, argv)) {
+		end(0);
 	}
 }
-
 
 inline char random_block() {
 	return (char)(rand() % (MAP_BLOCK_END - MAP_BLOCK - 1) + MAP_BLOCK + 1);
@@ -454,8 +412,18 @@ void output_clear() {
 }
 void output_map_soft() {
 	map_lock = true;
+#ifdef __WIN32
+	HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
+	COORD c;
+#endif
 	void (*gotoxy)(int, int) = [](int x, int y){
+#ifdef __WIN32
+		HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
+		COORD c = {(short)(x * 2 + 1), (short)(y + 5)};
+		SetConsoleCursorPosition(handle, c);
+#else
 		printf("\033[%d;%dH", y + 6, x * 2 + 2);
+#endif
 	};
 	for(int y = 0; y < map.height; y++) {
 		for(int x = 0; x < map.width; x++) {
@@ -466,7 +434,12 @@ void output_map_soft() {
 			}
 		}
 	}
+#ifdef __WIN32
+	c = {0, (short)(map.height + 5)};
+	SetConsoleCursorPosition(handle, c);
+#else
 	printf("\033[%d;2H", map.height + 6);
+#endif
 	for(int x = 0; x < map.width; x++) {
 		bool highlight = false;
 		for(int i = 0; i < CONTROLLED_BLOCK_COUNT; i++) {
@@ -481,7 +454,12 @@ void output_map_soft() {
 			printf("--");
 		}
 	}
+#ifdef __WIN32
+	c = {0, (short)(map.height + 6)};
+	SetConsoleCursorPosition(handle, c);
+#else
 	printf("\033[%d;0H", map.height + 7);
+#endif
 	fflush(stdout);
 	memcpy(buffered_map.data, map.data, sizeof(char) * map.width * map.height);
 	map_lock = false;
@@ -966,7 +944,7 @@ void output_loop() {
 }
 
 int main(int argc, char **argv) {
-	parse_cmdline(argc, argv);
+	process_argument(argc, argv);
 	init_game();
 	std::thread t(process_input);
 	std::thread t2(output_loop);
