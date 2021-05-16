@@ -275,7 +275,7 @@ void process_argument(int argc, char **argv) {
 	hard_mode.set_act_func([](char **argv) {
 		output_hard_mode = true;
 	});
-	hard_mode.set_description("Hard mode output(Support Windows)");
+	hard_mode.set_description("Hard mode output");
 	af.register_argument(&hard_mode);
 
 	show_buffer_area.add_name("--show-buffer-area");
