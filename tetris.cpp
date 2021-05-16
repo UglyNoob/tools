@@ -778,13 +778,34 @@ void process_input() {
 	int arrow_key_level = 0;
 	while(true) {
 		char ch = getch();
-		if(ch == '\033' && arrow_key_level == 0) {//PROCESS ARROWKEYS
+		if(ch == -32 && arrow_key_level == 0) {//PROCESS ARROWKEYS WINDOWS
 			arrow_key_level = 1;
 			will_output = true;
 			continue;
+		} else if((ch == 'H' || ch == 'P'|| ch == 'M'|| ch == 'K') && arrow_key_level == 1) {
+			switch(ch) {
+				case 'H':
+					rotate_block();
+					break;
+				case 'P':
+					move_down();
+					break;
+				case 'M':
+					move_right();
+					break;
+				case 'K':
+					move_left();
+					break;
+			}
+			arrow_key_level = 0;
+			will_output = true;
+			continue;
+		}
+		if(ch == '\033' && arrow_key_level == 0) {//PROCESS ARROWKEYS UNIX
+			arrow_key_level = 1;
+			continue;
 		} else if(ch == '[' && arrow_key_level == 1) {
 			arrow_key_level = 2;
-			will_output = true;
 			continue;
 		} else if((ch >= 'A' && ch <= 'D') && arrow_key_level == 2) {
 			switch(ch) {
