@@ -123,7 +123,7 @@ bool ArgumentFactory::process(int argc, char **argv) {
 			given_argc ++;
 		}
 		if(given_argc != called_arg.argc) {
-			log_error("Argument %s requires %d sub parameter%s, but got %d", argv[i], called_arg.argc, called_arg.argc < 2 ? "" : "s", given_argc);
+			log_error("Argument \"%s\" requires %d sub parameter%s, but got %d.", argv[i], called_arg.argc, called_arg.argc < 2 ? "" : "s", given_argc);
 			free_everything();
 			return false;
 		}
