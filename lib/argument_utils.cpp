@@ -94,13 +94,13 @@ bool ArgumentFactory::process(int argc, char **argv) {
 			continue;
 		}
 		if(argv[i][0] != '-') {
-			log_error("Unexcepted %s. Type \"%s --help\" for usage.", argv[i], argv[0]);
+			log_error("Unexcepted \"%s\". Type \"%s --help\" for usage.", argv[i], argv[0]);
 			free_everything();
 			return false;
 		}
 		int j = get_argument_from_name(this, argv[i]);
 		if(j == -1) {
-			log_error("Unknown argument %s. Type \"%s --help\" for usage.", argv[i], argv[0]);
+			log_error("Unknown argument \"%s\". Type \"%s --help\" for usage.", argv[i], argv[0]);
 			free_everything();
 			return false;
 		}

@@ -20,7 +20,7 @@ void process_argument(int argc, char **argv) {
 	help.set_argc(0);
 	help.set_description("Display this help and exit");
 	help.set_act_func([](char **argv) {
-		af.output_help(2, argv[0], ": display a file slowly");
+		af.output_help(2, argv[0], ": Display a file slowly.");
 		exit(0);
 	});
 	af.register_argument(&help);
