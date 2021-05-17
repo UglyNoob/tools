@@ -34,8 +34,8 @@ void process_argument(int argc, char **argv) {
 	});
 	af.register_argument(&file);
 
-	set_delay_time.add_name("-s");
-	set_delay_time.add_name("--set-delay-time");
+	set_delay_time.add_name("-t");
+	set_delay_time.add_name("--delay-time");
 	set_delay_time.set_argc(1);
 	set_delay_time.set_description("Specify how long to delay between characters(Default 1000us)(us)");
 	set_delay_time.set_act_func([](char **argv) {
