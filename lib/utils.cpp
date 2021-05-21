@@ -34,8 +34,8 @@ int parse_int(const char *str, bool *success) {
 	if(str[0] == '\0') {
 		if(success != nullptr) {
 			*success = false;
-			return 0;
 		}
+		return 0;
 	}
 	char *p = (char *)str;
 	int result = 0;
@@ -45,11 +45,11 @@ int parse_int(const char *str, bool *success) {
 		p++;
 	}
 	while(*p) {
-		if('0' > *p || '9' < *p) {
+		if(('0' > *p) || ('9' < *p)) {
 			if(success != nullptr) {
 				*success = false;
-				return 0;
 			}
+			return 0;
 		}
 		result += *p - '0';
 		result *= 10;
