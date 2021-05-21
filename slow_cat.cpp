@@ -20,10 +20,10 @@ void process_argument(int argc, char **argv) {
 	help.set_argc(0);
 	help.set_description("Display this help and exit");
 	help.set_act_func([](char **argv) {
-		af.output_help(2, argv[0], ": Display a file slowly.");
+		af.output_help(4, argv[0], ": Display a file slowly.\nUsage: ", argv[0], " [FILENAME] [ARGUMENT]...");;
 		exit(0);
 	});
-	af.register_argument(&help);
+	af.register_argument(help);
 
 	file.add_name("-f");
 	file.add_name("--file");
@@ -32,7 +32,7 @@ void process_argument(int argc, char **argv) {
 	file.set_act_func([](char **argv) {
 		filename = argv[0];
 	});
-	af.register_argument(&file);
+	af.register_argument(file);
 
 	set_delay_time.add_name("-t");
 	set_delay_time.add_name("--delay-time");
@@ -50,8 +50,9 @@ void process_argument(int argc, char **argv) {
 			exit(1);
 		}
 	});
-	af.register_argument(&set_delay_time);
+	af.register_argument(set_delay_time);
 
+	af.set_default_argument(file);
 	if(!af.process(argc, argv)) {
 		exit(0);
 	}

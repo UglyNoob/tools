@@ -24,8 +24,10 @@ public:
 class ArgumentFactory {
 public:
 	int argument_count = 0;
+	int default_argument_pos = -1;
 	Argument arguments[MAX_ARGUMENT_COUNT];
-	bool register_argument(Argument *specified_arg);
+	bool register_argument(Argument &specified_arg);
+	bool set_default_argument(Argument &specified_arg);
 	bool process(int argc, char **argv);
 
 	void output_help(int head_count, ...);

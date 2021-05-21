@@ -215,6 +215,7 @@ int delay_time = DEFAULT_DELAY_TIME;
 void process_argument(int argc, char **argv) {
 	static ArgumentFactory af;
 	Argument help, map_size, delay_time_arg, hard_mode, show_buffer_area;
+	help.add_name("-h");
 	help.add_name("--help");
 	help.set_argc(0);
 	help.set_act_func([](char **argv) {
@@ -222,7 +223,7 @@ void process_argument(int argc, char **argv) {
 		end(0);
 	});
 	help.set_description("Display this help and exit");
-	af.register_argument(&help);
+	af.register_argument(help);
 
 	map_size.add_name("--map-size");
 	map_size.set_argc(2);
@@ -251,7 +252,7 @@ void process_argument(int argc, char **argv) {
 		buffered_map.height = map.height;
 	});
 	map_size.set_description("[width] [height]: Set the size of the map");
-	af.register_argument(&map_size);
+	af.register_argument(map_size);
 
 	delay_time_arg.add_name("--delay-time");
 	delay_time_arg.set_argc(1);
@@ -268,7 +269,7 @@ void process_argument(int argc, char **argv) {
 		}
 	});
 	delay_time_arg.set_description("Set time to delay between frames(ms)");
-	af.register_argument(&delay_time_arg);
+	af.register_argument(delay_time_arg);
 
 	hard_mode.add_name("--hard-mode");
 	hard_mode.set_argc(0);
@@ -276,7 +277,7 @@ void process_argument(int argc, char **argv) {
 		output_hard_mode = true;
 	});
 	hard_mode.set_description("Hard mode output");
-	af.register_argument(&hard_mode);
+	af.register_argument(hard_mode);
 
 	show_buffer_area.add_name("--show-buffer-area");
 	show_buffer_area.set_argc(0);
@@ -284,7 +285,7 @@ void process_argument(int argc, char **argv) {
 		if_output_buffer_area = true;
 	});
 	show_buffer_area.set_description("Output buffer area(FOR DEBUG)");
-	af.register_argument(&show_buffer_area);
+	af.register_argument(show_buffer_area);
 
 	if(!af.process(argc, argv)) {
 		end(0);

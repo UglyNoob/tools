@@ -49,20 +49,55 @@ void Argument::act(char **argv) {
 	}
 }
 
-
-bool ArgumentFactory::register_argument(Argument *specified_arg) {
+bool ArgumentFactory::register_argument(Argument &specified_arg) {
 	if(argument_count == MAX_ARGUMENT_COUNT) {
 		return false;
 	}
 	Argument &dst = arguments[argument_count];
-	dst = *specified_arg;
+	dst = specified_arg;
 	dst.name_count = 0;
-	for(int i = 0; i < specified_arg->name_count; i++) {
-		dst.add_name(specified_arg->names[i]);
+	for(int i = 0; i < specified_arg.name_count; i++) {
+		dst.add_name(specified_arg.names[i]);
 	}
 
 	argument_count ++;
 	return true;
+}
+
+bool argument_equal(Argument &a, Argument &b) {
+	if(a.name_count != b.name_count || a.argc != b.argc || a.act_func != b.act_func || a.description != b.description) {
+		return false;
+	}
+	for(int i = 0; i < a.name_count; i++) {
+		if(strcmp(a.names[i], b.names[i]) != 0) {
+			return false;
+		}
+	}
+	return true;
+}
+const char *longest_name(Argument &arg) {
+	int result = -1, max = 0;
+	for(int i = 0; i < arg.name_count; i++) {
+		int len = strlen(arg.names[i]);
+		if(len >= max) {
+			result = i;
+			max = len;
+		}
+	}
+	if(result == -1) {
+		return nullptr;
+	} else {
+		return arg.names[result];
+	}
+}
+bool ArgumentFactory::set_default_argument(Argument &specified_arg) {
+	for(int i = 0; i < argument_count; i++) {
+		if(argument_equal(specified_arg, arguments[i])) {
+			default_argument_pos = i;
+			return true;
+		}
+	}
+	return false;
 }
 
 int get_argument_from_name(ArgumentFactory *af, const char *given_name) {
@@ -93,21 +128,65 @@ bool ArgumentFactory::process(int argc, char **argv) {
 		if(strlen(argv[i]) == 0) {
 			continue;
 		}
-		if(argv[i][0] != '-') {
-			log_error("Unexcepted \"%s\". Type \"%s --help\" for usage.", argv[i], argv[0]);
-			free_everything();
-			return false;
-		}
 		int j = get_argument_from_name(this, argv[i]);
 		if(j == -1) {
-			log_error("Unknown argument \"%s\". Type \"%s --help\" for usage.", argv[i], argv[0]);
-			free_everything();
-			return false;
+			if(default_argument_pos == -1) {
+				if(argv[i][0] == '-') {
+					log_error("Unknown argument \"%s\". Type \"%s --help\" for usage.", argv[i], argv[0]);
+					free_everything();
+					return false;
+				} else {
+					log_error("Unexcepted \"%s\". Type \"%s --help\" for usage.", argv[i], argv[0]);
+					free_everything();
+					return false;
+				}
+			}
+			Argument &called_arg = arguments[default_argument_pos];
+			const char *called_arg_name = longest_name(called_arg);
+			if(called_arg_name == nullptr) {
+				called_arg_name = "";
+			}
+			int given_argc = 0;
+			for(int k = i; k < argc; k++) {
+				if(strlen(argv[k]) == 0) {
+					given_argc ++;
+					continue;
+				}
+				if(argv[k][0] == '-') {
+					if(get_argument_from_name(this, argv[k]) == -1) {
+						given_argc ++;
+						continue;
+					} else {
+						break;
+					}
+				}
+				given_argc ++;
+			}
+			if(given_argc != called_arg.argc) {
+				log_error("Argument \"%s\" requires %d sub parameter%s, but got %d.", called_arg_name, called_arg.argc, called_arg.argc < 2 ? "" : "s", given_argc);
+				free_everything();
+				return false;
+			}
+			if(called_time[default_argument_pos] == 0) {
+				arg_pos[default_argument_pos] = new int[MAX_CALL_TIME];
+			}
+			if(called_time[default_argument_pos] == MAX_CALL_TIME) {
+				log_error("The time of argument \"%s\" to be called reaches its limit %d.", called_arg_name, MAX_CALL_TIME);
+				free_everything();
+				return false;
+			}
+			arg_pos[default_argument_pos][called_time[default_argument_pos]] = i - 1;
+			called_time[default_argument_pos] ++;
+			i += called_arg.argc - 1;
+			continue;
 		}
 		Argument &called_arg = arguments[j];
 
 		int given_argc = 0;
 		for(int k = i + 1; k < argc; k++) {
+			if(given_argc == called_arg.argc) {
+				break;
+			}
 			if(strlen(argv[k]) == 0) {
 				given_argc ++;
 				continue;
