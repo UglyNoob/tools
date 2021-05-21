@@ -30,7 +30,7 @@ public:
 	bool set_default_argument(Argument &specified_arg);
 	bool process(int argc, char **argv);
 
-	void output_help(int head_count, ...);
+	void output_help(int head_count = 0, ...);
 };
 
 #endif
