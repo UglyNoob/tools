@@ -148,6 +148,9 @@ bool ArgumentFactory::process(int argc, char **argv) {
 			}
 			int given_argc = 0;
 			for(int k = i; k < argc; k++) {
+				if(given_argc == called_arg.argc) {
+					break;
+				}
 				if(strlen(argv[k]) == 0) {
 					given_argc ++;
 					continue;
