@@ -66,7 +66,7 @@ int main(int argc, char **argv) {
 	}
 	FILE *f = fopen(filename, "r");
 	if(f == nullptr) {
-		log_error("Can't open file: %s", filename);
+		log_error("Can't open file: \"%s\"", filename);
 		exit(1);
 	}
 	char c = fgetc(f);
