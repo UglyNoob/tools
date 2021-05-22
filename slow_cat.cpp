@@ -69,13 +69,18 @@ int main(int argc, char **argv) {
 		log_error("No file name specified. Type \"%s --help\" for usage.", argv[0]);
 		exit(1);
 	}
+	
+	FILE **files = new FILE*[filename_count] {nullptr} ;
 	for(int i = 0; i < filename_count; i++) {
 		char *filename = (char *)filenames[i];
-		FILE *f = fopen(filename, "r");
-		if(f == nullptr) {
+		files[i] = fopen(filename, "r");
+		if(files[i] == nullptr) {
 			log_error("Can't open file: \"%s\"", filename);
 			exit(1);
 		}
+	}
+	for(int i = 0; i < filename_count; i++) {
+		FILE *f = files[i];
 		char c = fgetc(f);
 		while(c != (char)EOF) {
 			putchar(c);
