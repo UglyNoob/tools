@@ -249,22 +249,22 @@ void ArgumentFactory::output_help(int head_count, ...) {
 	va_list p;
 	va_start(p, head_count);
 	for(int i = 0; i < head_count; i++) {
-		printf("%s", va_arg(p, const char *));
+		fprintf(stderr, "%s", va_arg(p, const char *));
 	}
 	va_end(p);
-	printf("\nArguments:\n");
+	fprintf(stderr, "\nArguments:\n");
 	for(int i = 0; i < argument_count; i++) {
-		printf("\t");
+		fprintf(stderr, "\t");
 		for(int j = 0; j < arguments[i].name_count; j++) {
 			if(j != 0) {
-				printf(", ");
+				fprintf(stderr, ", ");
 			}
-			printf("%s", arguments[i].names[j]);
+			fprintf(stderr, "%s", arguments[i].names[j]);
 		}
 		if(arguments[i].description != nullptr) {
-			printf(":\n\t\t%s\n", arguments[i].description);
+			fprintf(stderr, ":\n\t\t%s\n", arguments[i].description);
 		} else {
-			printf("\n");
+			fprintf(stderr, "\n");
 		}
 	}
 }
