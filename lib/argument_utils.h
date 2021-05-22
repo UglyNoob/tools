@@ -3,11 +3,13 @@
 
 const int MAX_NAME_COUNT = 100;
 const int MAX_ARGUMENT_COUNT = 1024;
+const int MAX_CALL_TIME = 1024;
 
 class Argument {
 public:
 	int name_count = 0;
 	int argc = 0;
+	int max_called_time = MAX_CALL_TIME;
 	char *names[MAX_NAME_COUNT];
 	void (*act_func)(char **argv) = nullptr;
 	const char *description = nullptr;
@@ -18,6 +20,7 @@ public:
 	void set_argc(int given_argc);
 	void set_act_func(void (*given_act_func)(char **argv));
 	void set_description(const char *given_description);
+	bool set_called_limit(int given_max_called_time);
 	void act(char **argv);
 };
 

@@ -4,8 +4,11 @@
 #include <thread>
 #include <chrono>
 
+const int MAX_FILE_COUNT = 1024;
+
 ArgumentFactory af;
-const char *filename = nullptr;
+char **filenames = new char*[MAX_FILE_COUNT];
+int filename_count = 0;
 int delay_time = 1000;
 
 void delay_us(int us) {
@@ -29,8 +32,10 @@ void process_argument(int argc, char **argv) {
 	file.add_name("--file");
 	file.set_argc(1);
 	file.set_description("Specify file to display");
+	file.set_called_limit(MAX_FILE_COUNT);
 	file.set_act_func([](char **argv) {
-		filename = argv[0];
+		filenames[filename_count] = argv[0];
+		filename_count ++;
 	});
 	af.register_argument(file);
 
@@ -60,20 +65,24 @@ void process_argument(int argc, char **argv) {
 
 int main(int argc, char **argv) {
 	process_argument(argc, argv);
-	if(filename == nullptr) {
+	if(filename_count == 0) {
 		log_error("No file name specified. Type \"%s --help\" for usage.", argv[0]);
 		exit(1);
 	}
-	FILE *f = fopen(filename, "r");
-	if(f == nullptr) {
-		log_error("Can't open file: \"%s\"", filename);
-		exit(1);
-	}
-	char c = fgetc(f);
-	while(c != (char)EOF) {
-		putchar(c);
-		fflush(stdout);
-		delay_us(delay_time);
-		c = fgetc(f);
+	for(int i = 0; i < filename_count; i++) {
+		char *filename = (char *)filenames[i];
+		FILE *f = fopen(filename, "r");
+		if(f == nullptr) {
+			log_error("Can't open file: \"%s\"", filename);
+			exit(1);
+		}
+		char c = fgetc(f);
+		while(c != (char)EOF) {
+			putchar(c);
+			fflush(stdout);
+			delay_us(delay_time);
+			c = fgetc(f);
+		}
+		fclose(f);
 	}
 }

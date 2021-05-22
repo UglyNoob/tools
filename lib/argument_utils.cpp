@@ -5,7 +5,6 @@
 #include <cstring>
 #include <cstdarg>
 
-const int MAX_CALL_TIME = 1024;
 
 Argument::~Argument() {
 	for(int i = 0; i < name_count; i++) {
@@ -43,6 +42,13 @@ void Argument::set_description(const char *given_description) {
 	description = given_description;
 }
 
+bool Argument::set_called_limit(int given_max_called_time) {
+	if(given_max_called_time < 1) {
+		return false;
+	}
+	max_called_time = given_max_called_time;
+	return true;
+}
 void Argument::act(char **argv) {
 	if(act_func != nullptr) {
 		act_func(argv);
@@ -110,6 +116,9 @@ int get_argument_from_name(ArgumentFactory *af, const char *given_name) {
 }
 
 bool ArgumentFactory::process(int argc, char **argv) {
+	if(argument_count == 0) {
+		return false;
+	}
 	int *called_time = new int[argument_count];
 	memset(called_time, 0, sizeof(int) * argument_count);
 
@@ -171,10 +180,10 @@ bool ArgumentFactory::process(int argc, char **argv) {
 				return false;
 			}
 			if(called_time[default_argument_pos] == 0) {
-				arg_pos[default_argument_pos] = new int[MAX_CALL_TIME];
+				arg_pos[default_argument_pos] = new int[called_arg.max_called_time];
 			}
-			if(called_time[default_argument_pos] == MAX_CALL_TIME) {
-				log_error("The time of argument \"%s\" to be called reaches its limit %d.", called_arg_name, MAX_CALL_TIME);
+			if(called_time[default_argument_pos] == called_arg.max_called_time) {
+				log_error("The time of argument \"%s\" to be called reaches its limit %d.", called_arg_name, called_arg.max_called_time);
 				free_everything();
 				return false;
 			}
@@ -212,8 +221,8 @@ bool ArgumentFactory::process(int argc, char **argv) {
 		if(called_time[j] == 0) {
 			arg_pos[j] = new int[MAX_CALL_TIME];
 		}
-		if(called_time[j] == MAX_CALL_TIME) {
-			log_error("The time of argument \"%s\" to be called reaches its limit %d.", argv[i], MAX_CALL_TIME);
+		if(called_time[j] == called_arg.max_called_time) {
+			log_error("The time of argument \"%s\" to be called reaches its limit %d.", argv[i], called_arg.max_called_time);
 			free_everything();
 			return false;
 		}
