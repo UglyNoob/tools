@@ -288,7 +288,7 @@ void process_argument(int argc, char **argv) {
 	af.register_argument(show_buffer_area);
 
 	if(!af.process(argc, argv)) {
-		end(0);
+		end(1);
 	}
 }
 
