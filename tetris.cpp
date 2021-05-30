@@ -12,19 +12,6 @@
 #ifdef __WIN32
 #include <windows.h>
 #include <conio.h>
-#else
-#include <termios.h>
-char getch() {
-	termios oldt, newt;
-	tcgetattr(0, &oldt);
-	newt = oldt;
-	newt.c_lflag &= ~ECHO;
-	newt.c_lflag &= ~ICANON;
-	tcsetattr(0, TCSANOW, &newt);
-	char value = getchar();
-	tcsetattr(0, TCSANOW, &oldt);
-	return value;
-}
 #endif
 
 const int DEFAULT_MAP_WIDTH = 10;

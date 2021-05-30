@@ -65,5 +65,21 @@ int parse_int(const char *str, bool *success) {
 	return result;
 }
 
+#ifndef __WIN32
+#include <termios.h>
+
+char getch() {
+	termios oldt, newt;
+	tcgetattr(0, &oldt);
+	newt = oldt;
+	newt.c_lflag &= ~ECHO;
+	newt.c_lflag &= ~ICANON;
+	tcsetattr(0, TCSANOW, &newt);
+	char value = getchar();
+	tcsetattr(0, TCSANOW, &oldt);
+	return value;
+}
+#endif
+
 #include "framebuffer_utils.cpp"
 #include "argument_utils.cpp"

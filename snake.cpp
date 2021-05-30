@@ -13,7 +13,6 @@
 #include <conio.h>
 #else
 #include <unistd.h>
-#include <termios.h>
 #endif
 using namespace std;
 struct color{
