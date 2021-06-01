@@ -68,7 +68,7 @@ int main(int argc, char **argv) {
 	if(filename_count == 0) {
 		//log_error("No file name specified. Type \"%s --help\" for usage.", argv[0]);
 		//exit(1);
-		filenames[filename_count] = "/dev/stdin";
+		filenames[filename_count] = (char *)"/dev/stdin";
 		filename_count++;
 	}
 	
