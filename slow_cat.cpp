@@ -23,7 +23,7 @@ void process_argument(int argc, char **argv) {
 	help.set_argc(0);
 	help.set_description("Display this help and exit");
 	help.set_act_func([](char **argv) {
-		af.output_help(4, argv[0], ": Display a file slowly.\nUsage: ", argv[0], " [FILENAME] [ARGUMENT]...");;
+		af.output_help(4, argv[0], ": Display a file slowly.\nUsage: ", argv[0], " [FILENAME] [ARGUMENT]...\nWith no file, read standard input.");
 		exit(0);
 	});
 	af.register_argument(help);
@@ -66,8 +66,10 @@ void process_argument(int argc, char **argv) {
 int main(int argc, char **argv) {
 	process_argument(argc, argv);
 	if(filename_count == 0) {
-		log_error("No file name specified. Type \"%s --help\" for usage.", argv[0]);
-		exit(1);
+		//log_error("No file name specified. Type \"%s --help\" for usage.", argv[0]);
+		//exit(1);
+		filenames[filename_count] = "/dev/stdin";
+		filename_count++;
 	}
 	
 	FILE **files = new FILE*[filename_count] {nullptr} ;
