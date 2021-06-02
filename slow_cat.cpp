@@ -65,14 +65,7 @@ void process_argument(int argc, char **argv) {
 
 int main(int argc, char **argv) {
 	process_argument(argc, argv);
-	if(filename_count == 0) {
-		//log_error("No file name specified. Type \"%s --help\" for usage.", argv[0]);
-		//exit(1);
-		filenames[filename_count] = (char *)"/dev/stdin";
-		filename_count++;
-	}
-	
-	FILE **files = new FILE*[filename_count] {nullptr} ;
+	FILE **files = new FILE*[filename_count >= 1 ? filename_count : 1] {nullptr};
 	for(int i = 0; i < filename_count; i++) {
 		char *filename = (char *)filenames[i];
 		files[i] = fopen(filename, "r");
@@ -80,6 +73,10 @@ int main(int argc, char **argv) {
 			log_error("Can't open file: \"%s\"", filename);
 			exit(1);
 		}
+	}
+	if(filename_count == 0) {
+		files[0] = stdin;
+		filename_count ++;
 	}
 	for(int i = 0; i < filename_count; i++) {
 		FILE *f = files[i];
