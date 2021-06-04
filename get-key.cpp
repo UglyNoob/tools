@@ -1,5 +1,5 @@
 #include<cstdio>
-#include<conio.h>
+#include"utils.h"
 #include<cstring>
 
 int main(int argc,char **argv){
