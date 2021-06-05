@@ -1,7 +1,6 @@
 #include <ctime>
 #include <cmath>
 #include <cstdio>
-#include <cstdarg>
 #include <cstdlib>
 #include <cstring>
 #include <thread>
@@ -99,7 +98,7 @@ const Shape shapes[] = {//IN ORDER
 	{1, new SquareArray[1]{{new char[4] {//MAP_BLOCK_SQUARE
 		1, 1,
 		1, 1
-	}, 2, 2}}},
+	}, 2, 2}}, nullptr},
 	{2, new SquareArray[2]{{new char[6] {//MAP_BLOCK_STEP
 		1, 0,
 		1, 1,
