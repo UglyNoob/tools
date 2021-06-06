@@ -240,6 +240,7 @@ void process_argument(int argc, char **argv) {
 	map_size.set_description("[width] [height]: Set the size of the map");
 	af.register_argument(map_size);
 
+	delay_time_arg.add_name("-d");
 	delay_time_arg.add_name("--delay-time");
 	delay_time_arg.set_argc(1);
 	delay_time_arg.set_act_func([](char **argv){
