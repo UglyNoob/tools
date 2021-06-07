@@ -403,6 +403,8 @@ void output_map_soft() {
 #ifdef __WIN32
 	HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
 	COORD c;
+#else
+	printf("\033[s");
 #endif
 	void (*gotoxy)(int, int) = [](int x, int y){
 #ifdef __WIN32
@@ -410,7 +412,7 @@ void output_map_soft() {
 		COORD c = {(short)(x * 2 + 1), (short)(y + 5)};
 		SetConsoleCursorPosition(handle, c);
 #else
-		printf("\033[%d;%dH", y + 6, x * 2 + 2);
+		printf("\033[u\033[%dB\033[%dC", y + 1, x * 2 + 1);
 #endif
 	};
 	for(int y = 0; y < map.height; y++) {
@@ -426,7 +428,7 @@ void output_map_soft() {
 	c = {1, (short)(map.height + 5)};
 	SetConsoleCursorPosition(handle, c);
 #else
-	printf("\033[%d;2H", map.height + 6);
+	printf("\033[u\033[1C\033[%dB", map.height + 1);
 #endif
 	for(int x = 0; x < map.width; x++) {
 		bool highlight = false;
@@ -446,7 +448,7 @@ void output_map_soft() {
 	c = {0, (short)(map.height + 6)};
 	SetConsoleCursorPosition(handle, c);
 #else
-	printf("\033[%d;0H", map.height + 7);
+	printf("\033[u\033[%dB", map.height + 2);
 #endif
 	fflush(stdout);
 	memcpy(buffered_map.data, map.data, sizeof(char) * map.width * map.height);
@@ -927,6 +929,9 @@ void game_loop() {
 void output_loop() {
 	output_clear();
 	output_next_block();
+	if(if_output_buffer_area) {
+		output(buffer_area);
+	}
 	output();
 	while(true) {
 		while(!will_output) {
@@ -936,13 +941,11 @@ void output_loop() {
 		output_next_block();
  		if(if_output_buffer_area) {
 			output(buffer_area);
+		}
+		if(output_hard_mode) {
 			output();
 		} else {
-			if(output_hard_mode) {
-				output();
-			} else {
-				output_map_soft();
-			}
+			output_map_soft();
 		}
 		fprintf(stderr, "Score: %d\n", score);
 		will_output = false;
