@@ -505,6 +505,14 @@ void output(SquareArray obj = map) {
 }
 
 void output_next_block() {
+	static char last = MAP_EMPTY;
+	if(last == next_block) {
+		for(int i = 0; i < 4; i++) {
+			putchar('\n');
+		}
+		return;
+	}
+	last = next_block;
 	SquareArray data = get_shape(next_block).datas[0];
 	int space_count = map.width - 3;
 	int min = (map.width - 4) / 2;
