@@ -287,7 +287,7 @@ char now_block, next_block;
 bool will_output, will_generate_block, is_lost;
 int score, rotate_count;
 
-void output_color_block(char block) {
+void output_color_block(char block, bool reset = true) {
 #ifdef __WIN32
 	HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
 	CONSOLE_SCREEN_BUFFER_INFO info;
@@ -301,46 +301,41 @@ void output_color_block(char block) {
 		case MAP_BLOCK:
 			SetConsoleTextAttribute(handle, BACKGROUND_BLUE | BACKGROUND_RED | BACKGROUND_GREEN);
 			printf("  ");
-			SetConsoleTextAttribute(handle, general);
 			break;
 		case MAP_BLOCK_L:
 			SetConsoleTextAttribute(handle, BACKGROUND_RED);
 			printf("  ");
-			SetConsoleTextAttribute(handle, general);
 			break;
 		case MAP_BLOCK_LONG:
 			SetConsoleTextAttribute(handle, BACKGROUND_GREEN);
 			printf("  ");
-			SetConsoleTextAttribute(handle, general);
 			break;
 		case MAP_BLOCK_SQUARE:
 			SetConsoleTextAttribute(handle, 0xE0);
 			printf("  ");
-			SetConsoleTextAttribute(handle, general);
 			break;
 		case MAP_BLOCK_STEP:
 			SetConsoleTextAttribute(handle, BACKGROUND_BLUE);
 			printf("  ");
-			SetConsoleTextAttribute(handle, general);
 			break;
 		case MAP_BLOCK_CONVEX:
 			SetConsoleTextAttribute(handle, BACKGROUND_RED | BACKGROUND_RED);
 			printf("  ");
-			SetConsoleTextAttribute(handle, general);
 			break;
 		case MAP_BLOCK_L_FLIP:
 			SetConsoleTextAttribute(handle, BACKGROUND_GREEN | BACKGROUND_BLUE);
 			printf("  ");
-			SetConsoleTextAttribute(handle, general);
 			break;
 		case MAP_BLOCK_STEP_FLIP:
 			SetConsoleTextAttribute(handle, BACKGROUND_RED | BACKGROUND_GREEN);
 			printf("  ");
-			SetConsoleTextAttribute(handle, general);
 			break;
 		default:
 			log_error("Unknown map enum detected: %d", block);
 			end(1);
+	}
+	if(reset) {
+		SetConsoleTextAttribute(handle, general);
 	}
 #else
 	switch(block) {
@@ -348,32 +343,35 @@ void output_color_block(char block) {
 			printf("  ");
 			break;
 		case MAP_BLOCK:
-			printf("\033[47m  \033[0m");
+			printf("\033[47m  ");
 			break;
 		case MAP_BLOCK_L:
-			printf("\033[41m  \033[0m");
+			printf("\033[41m  ");
 			break;
 		case MAP_BLOCK_LONG:
-			printf("\033[42m  \033[0m");
+			printf("\033[42m  ");
 			break;
 		case MAP_BLOCK_SQUARE:
-			printf("\033[43m  \033[0m");
+			printf("\033[43m  ");
 			break;
 		case MAP_BLOCK_STEP:
-			printf("\033[44m  \033[0m");
+			printf("\033[44m  ");
 			break;
 		case MAP_BLOCK_CONVEX:
-			printf("\033[45m  \033[0m");
+			printf("\033[45m  ");
 			break;
 		case MAP_BLOCK_L_FLIP:
-			printf("\033[46m  \033[0m");
+			printf("\033[46m  ");
 			break;
 		case MAP_BLOCK_STEP_FLIP:
-			printf("\033[103m  \033[0m");
+			printf("\033[103m  ");
 			break;
 		default:
 			log_error("Unknown map enum detected: %d", block);
 			end(1);
+	}
+	if(reset) {
+		printf("\033[0m");
 	}
 #endif
 }
@@ -454,27 +452,25 @@ void output_map_soft() {
 	memcpy(buffered_map.data, map.data, sizeof(char) * map.width * map.height);
 	map_lock = false;
 }
+
+#ifdef __WIN32
 void output(SquareArray obj = map) {
 	map_lock = true;
-#ifdef __WIN32
-	const char clear_line[] = "";
 	HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
 	CONSOLE_CURSOR_INFO cursor_info;
 	cursor_info.bVisible = false;
 	cursor_info.dwSize = 1;
 	SetConsoleCursorInfo(handle, &cursor_info);
-#else
-	const char clear_line[] = "\033[K";
-#endif
-	printf("%s|", clear_line);
+	printf("|");
 	for(int i = 0; i < obj.width; i++) {
 		printf("==");
 	}
 	printf("|\n");
 	for(int y = 0; y < obj.height; y++) {
-		printf("%s|", clear_line);
+		printf("|");
 		for(int x = 0; x < obj.width; x++) {
-			output_color_block(get(x, y, obj));
+			char obj_value = get(x, y, obj);
+			output_color_block(obj_value);
 		}
 		printf("|\n");
 	}
@@ -497,12 +493,71 @@ void output(SquareArray obj = map) {
 	if(obj.data == map.data) {
 		memcpy(buffered_map.data, map.data, sizeof(char) * map.width * map.height);
 	}
-#ifdef __WIN32
 	cursor_info.bVisible = true;
 	SetConsoleCursorInfo(handle, &cursor_info);
-#endif
 	map_lock = false;
 }
+#else
+void output(SquareArray obj = map) {
+	map_lock = true;
+	printf("\033[K|");
+	for(int i = 0; i < obj.width; i++) {
+		printf("==");
+	}
+	printf("|\n");
+	for(int y = 0; y < obj.height; y++) {
+		printf("\033[K|");
+		for(int x = 0; x < obj.width; x++) {
+			char obj_value = get(x, y, obj);
+			if(obj_value == MAP_EMPTY) {
+				printf("  ");
+				continue;
+			}
+			if(x != 0) {
+				if(get(x - 1, y, obj) == obj_value) {
+					printf("  ");
+					if(x == obj.width - 1) {
+						printf("\033[0m");
+					} else {
+						if(get(x + 1, y, obj) != obj_value) {
+							printf("\033[0m");
+						}
+					}
+					continue;
+				}
+			}
+			if(x != obj.width - 1) {
+				if (get(x + 1, y, obj) == obj_value) {
+					output_color_block(obj_value, false);
+					continue;
+				}
+			}
+			output_color_block(obj_value);
+		}
+		printf("|\n");
+	}
+	printf("\033[K|");
+	for(int x = 0; x < obj.width; x++) {
+		bool highlight = false;
+		for(int i = 0; i < CONTROLLED_BLOCK_COUNT; i++) {
+			if (controlled_block[i].x == x) {
+				highlight = true;
+				break;
+			}
+		}
+		if(highlight) {
+			printf("==");
+		} else {
+			printf("--");
+		}
+	}
+	printf("|\n");
+	if(obj.data == map.data) {
+		memcpy(buffered_map.data, map.data, sizeof(char) * map.width * map.height);
+	}
+	map_lock = false;
+}
+#endif
 
 void output_next_block() {
 	static char last = MAP_EMPTY;
