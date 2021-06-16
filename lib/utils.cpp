@@ -6,29 +6,30 @@
 
 #ifdef __WIN32
 #include <windows.h>
-#endif
-
 void log_error(const char *description, ...) {
 	va_list args;
 	va_start(args, description);
-#ifdef __WIN32
 	HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
 	CONSOLE_SCREEN_BUFFER_INFO info;
 	GetConsoleScreenBufferInfo(handle, &info);
 	WORD general = info.wAttributes;
 	SetConsoleTextAttribute(handle, FOREGROUND_RED);
-#else
-	fprintf(stderr, "\033[91m\033[1m");
-#endif
 	vfprintf(stderr, description, args);
-#ifdef __WIN32
 	SetConsoleTextAttribute(handle, general);
 	putchar('\n');
-#else
-	fprintf(stderr, "\033[0m\n");
-#endif
 	va_end(args);
 }
+#else
+void log_error(const char *description, ...) {
+	va_list args;
+	va_start(args, description);
+	fprintf(stderr, "\033[91m\033[1m");
+	vfprintf(stderr, description, args);
+	fprintf(stderr, "\033[0m\n");
+	va_end(args);
+}
+#endif
+
 
 int parse_int(const char *str, bool *success) {
 	if(str[0] == '\0') {
@@ -81,5 +82,10 @@ char getch() {
 }
 #endif
 
+#ifdef INCLUDE_FRAMEBUFFER
 #include "framebuffer_utils.cpp"
+#endif
+
+#ifdef INCLUDE_ARGUMENT
 #include "argument_utils.cpp"
+#endif
