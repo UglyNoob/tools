@@ -9,8 +9,12 @@
 #include "framebuffer_utils.h"
 #endif
 
+void log(const char *description, ...);
 void log_error(const char *description, ...);
 int parse_int(const char *str, bool *success = nullptr);
+
+wchar_t utf8to32(const unsigned char *src, int *output_length = nullptr);
+wchar_t utf8to32(const char *src, int *output_length = nullptr);
 
 #ifndef __WIN32
 #include <termios.h>
