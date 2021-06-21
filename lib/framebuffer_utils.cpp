@@ -80,6 +80,10 @@ bool Framebuffer::unbind() {
 	return true;
 }
 
+bool Framebuffer::get_is_bind() {
+	return is_bind;
+}
+
 bool Framebuffer::set(int x, int y, int r, int g, int b, int a) {
 	if(x < 0 || y < 0 || x >= width || y >= height) {
 		error_code = ERROR_COORD_OUT_OF_BOUND;
@@ -89,7 +93,19 @@ bool Framebuffer::set(int x, int y, int r, int g, int b, int a) {
 		error_code = ERROR_COLOR_OUT_OF_BOUND;
 		return false;
 	}
-	*(unsigned int *)(data + x * bytes_per_pixel + y * finfo.line_length) = (a << 24) + (r << 16) + (g << 8) + b;
+	unsigned int value;
+	if(if_blend && a != 255) {
+		int pr, pg, pb;
+		get(x, y, &pr, &pg, &pb, nullptr);
+		double percent = a / 255.f;
+		value = (255 << 24) + 
+			((int)(r * percent + pr * (1 - percent)) << 16) +
+			((int)(g * percent + pg * (1 - percent)) << 8) +
+			(int)(b * percent + pb * (1 - percent));
+	} else {
+		value = (a << 24) + (r << 16) + (g << 8) + b;
+	}
+	*(unsigned int *)(data + x * bytes_per_pixel + y * finfo.line_length) = value;
 	return true;
 }
 
@@ -104,16 +120,16 @@ bool Framebuffer::fill(int r, int g, int b, int a) {
 	return true;
 }
 
-bool Framebuffer::get(int x, int y) {
+bool Framebuffer::get(int x, int y, int *r, int *g, int *b, int *a) {
 	if(x < 0 || y < 0 || x >= width || y >= height) {
 		error_code = ERROR_COORD_OUT_OF_BOUND;
 		return false;
 	}
 	unsigned int value = *(unsigned int *)(data + x * bytes_per_pixel + y * finfo.line_length);
-	r = (value & 0x00ff0000) >> 16;
-	g = (value & 0x0000ff00) >> 8;
-	b = value & 0x000000ff;
-	a = value >> 24;
+	if(r != nullptr) *r = (value & 0x00ff0000) >> 16;
+	if(g != nullptr) *g = (value & 0x0000ff00) >> 8;
+	if(b != nullptr) *b = value & 0x000000ff;
+	if(a != nullptr) *a = value >> 24;
 	return true;
 }
 
@@ -122,6 +138,9 @@ void Framebuffer::get_size(int *width, int *height) {
 	*height = this->height;
 }
 
+void Framebuffer::set_if_blend(bool if_blend) {
+	this->if_blend = if_blend;
+}
 const char *Framebuffer::get_error_message() {
 	return ERROR_MESSAGES[error_code];
 }

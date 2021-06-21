@@ -6,6 +6,7 @@
 #include <thread>
 #include <chrono>
 
+#define INCLUDE_ARGUMENT
 #include "utils.h"
 
 #ifdef __WIN32
