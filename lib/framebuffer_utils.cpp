@@ -2,6 +2,7 @@
 #include "framebuffer_utils.h"
 
 #include <cstdio>
+#include <cstring>
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -65,6 +66,10 @@ bool Framebuffer::bind(const char *device_name) {
 	height = vinfo.yres;
 	bytes_per_pixel = vinfo.bits_per_pixel / 8;
 
+	buffer = new unsigned char[width * height * bytes_per_pixel];
+	//memset(buffer, 0, sizeof(unsigned char) * width * height * bytes_per_pixel);
+	reset_buffer();
+
 	is_bind = true;
 	return true;
 }
@@ -76,6 +81,10 @@ bool Framebuffer::unbind() {
 	}
 	munmap(data, finfo.smem_len);
 	close(fbfd);
+	if(buffer != nullptr) {
+		delete[] buffer;
+		buffer = nullptr;
+	}
 	is_bind = false;
 	return true;
 }
@@ -84,52 +93,89 @@ bool Framebuffer::get_is_bind() {
 	return is_bind;
 }
 
-bool Framebuffer::set(int x, int y, int r, int g, int b, int a) {
-	if(x < 0 || y < 0 || x >= width || y >= height) {
+void Framebuffer::set_if_blend(bool if_blend) {
+	this->if_blend = if_blend;
+}
+
+bool Framebuffer::get_if_blend() {
+	return if_blend;
+}
+
+bool Framebuffer::set(Coord pos, Color c) {
+	if(pos.x < 0 || pos.y < 0 || pos.x >= width || pos.y >= height) {
 		error_code = ERROR_COORD_OUT_OF_BOUND;
 		return false;
 	}
-	if(r > 255 || r < 0 || g > 255 || g < 0 || b > 255 || b < 0 || a > 255 || a < 0) {
+	if(c.r > 255 || c.r < 0 || c.g > 255 || c.g < 0 || c.b > 255 || c.b < 0 || c.a > 255 || c.a < 0) {
 		error_code = ERROR_COLOR_OUT_OF_BOUND;
 		return false;
 	}
 	unsigned int value;
-	if(if_blend && a != 255) {
-		int pr, pg, pb;
-		get(x, y, &pr, &pg, &pb, nullptr);
-		double percent = a / 255.f;
-		value = (255 << 24) + 
-			((int)(r * percent + pr * (1 - percent)) << 16) +
-			((int)(g * percent + pg * (1 - percent)) << 8) +
-			(int)(b * percent + pb * (1 - percent));
+	if(if_blend && c.a != 255) {
+		Color prev;
+		get({pos.x, pos.y}, &prev);
+		double source = c.a / 255.0;
+		double dest = 1 - source;
+		value = (255 << 24) +
+			((int)(c.r * source + prev.r * dest) << 16) +
+			((int)(c.g * source + prev.g * dest) << 8) +
+			(int)(c.b * source + prev.b * dest);
 	} else {
-		value = (a << 24) + (r << 16) + (g << 8) + b;
+		value = (c.a << 24) + (c.r << 16) + (c.g << 8) + c.b;
 	}
-	*(unsigned int *)(data + x * bytes_per_pixel + y * finfo.line_length) = value;
+	*(unsigned int *)(buffer + pos.x * bytes_per_pixel + pos.y * width * bytes_per_pixel) = value;
 	return true;
 }
 
-bool Framebuffer::fill(int r, int g, int b, int a) {
+bool Framebuffer::fill(Color c) {
 	for(int y = 0; y < height; y++) {
 		for(int x = 0; x < width; x++) {
-			if(!set(x, y, r, g, b ,a)) {
+			if(!set({x, y}, {c.r, c.g, c.b ,c.a})) {
 				return false;
 			}
 		}
 	}
 	return true;
 }
+/*
+void Framebuffer::draw_line(int x1, int y1, int x2, int y2) {
+	int smaller_x = x1 < x2 ? x1 : x2;
+	int bigger_x = x1 > x2 ? x1 : x2;
+	int smaller_y = y1 < y2 ? y1 : y2;
+	int bigger_y = y1 > y2 ? y1 : y2;
+	for(int x = smaller_x, y = sma; x <= bigger_x; x++) {
+		
+	}
+}*/
 
-bool Framebuffer::get(int x, int y, int *r, int *g, int *b, int *a) {
-	if(x < 0 || y < 0 || x >= width || y >= height) {
+void Framebuffer::draw_rectangle(Coord pos, int width, int height, Color c) {
+	for(int x = 0; x < width; x++) {
+		set({pos.x + x, pos.y}, c);
+		set({pos.x + x, pos.y + height - 1}, c);
+	}
+	for(int y = 0; y < height; y++) {
+		set({pos.x, pos.y + y}, c);
+		set({pos.x + width - 1, pos.y + y}, c);
+	}
+}
+void Framebuffer::fill_rectangle(Coord pos, int width, int height, Color c) {
+	for(int y = 0; y < height; y++) {
+		for(int x = 0; x < width; x++) {
+			set({pos.x + x, pos.y + y}, c);
+		}
+	}
+}
+
+bool Framebuffer::get(Coord pos, Color *output) {
+	if(pos.x < 0 || pos.y < 0 || pos.x >= width || pos.y >= height) {
 		error_code = ERROR_COORD_OUT_OF_BOUND;
 		return false;
 	}
-	unsigned int value = *(unsigned int *)(data + x * bytes_per_pixel + y * finfo.line_length);
-	if(r != nullptr) *r = (value & 0x00ff0000) >> 16;
-	if(g != nullptr) *g = (value & 0x0000ff00) >> 8;
-	if(b != nullptr) *b = value & 0x000000ff;
-	if(a != nullptr) *a = value >> 24;
+	unsigned int value = *(unsigned int *)(buffer + pos.x * bytes_per_pixel + pos.y * width * bytes_per_pixel);
+	output->r = (value & 0x00ff0000) >> 16;
+	output->g = (value & 0x0000ff00) >> 8;
+	output->b = value & 0x000000ff;
+	output->a = value >> 24;
 	return true;
 }
 
@@ -138,9 +184,24 @@ void Framebuffer::get_size(int *width, int *height) {
 	*height = this->height;
 }
 
-void Framebuffer::set_if_blend(bool if_blend) {
-	this->if_blend = if_blend;
+void Framebuffer::update() {
+	for(int y = 0; y < height; y++) {
+		for(int x = 0; x < width; x++) {
+			unsigned int value = *(unsigned int*)(buffer + x * bytes_per_pixel + y * width * bytes_per_pixel);
+			*(unsigned int *)(data + x * bytes_per_pixel + y * finfo.line_length) = value;
+		}
+	}
 }
+
+void Framebuffer::reset_buffer() {
+	for(int y = 0; y < height; y++) {
+		for(int x = 0; x < width; x++) {
+			unsigned int value = *(unsigned int *)(data + x * bytes_per_pixel + y * finfo.line_length);
+			*(unsigned int*)(buffer + x * bytes_per_pixel + y * width * bytes_per_pixel) = value;
+		}
+	}
+}
+
 const char *Framebuffer::get_error_message() {
 	return ERROR_MESSAGES[error_code];
 }

@@ -1,39 +1,41 @@
 #ifndef __ARGUMENT_UTILS_H__
 #define __ARGUMENT_UTILS_H__
 
-const int MAX_NAME_COUNT = 100;
-const int MAX_ARGUMENT_COUNT = 1024;
-const int MAX_CALL_TIME = 1024;
+const unsigned int MAX_CALL_TIME = 1024;
+
+#include <vector>
+#include <string>
 
 class Argument {
-public:
-	int name_count = 0;
+	friend class ArgumentFactory;
+private:
 	int argc = 0;
 	int max_called_time = MAX_CALL_TIME;
-	char *names[MAX_NAME_COUNT];
+	std::vector<std::string> names;
 	void (*act_func)(char **argv) = nullptr;
-	const char *description = nullptr;
+	std::string description;
 
-	~Argument();
-	bool add_name(const char *specified_name);
-	bool is_name(const char *given_name);
-	void set_argc(int given_argc);
-	void set_act_func(void (*given_act_func)(char **argv));
-	void set_description(const char *given_description);
-	bool set_called_limit(int given_max_called_time);
-	void act(char **argv);
+	void act(char **argv) const;
+public:
+	bool is_name(const char *given_name) const;
+	Argument& add_name(const char *specified_name);
+	Argument& set_argc(int given_argc);
+	Argument& set_act_func(void (*given_act_func)(char **argv));
+	Argument& set_description(const char *given_description);
+	Argument& set_called_limit(unsigned int given_max_called_time);
+	bool equals(const Argument &) const;
 };
 
 class ArgumentFactory {
-public:
-	int argument_count = 0;
+private:
 	int default_argument_pos = -1;
-	Argument arguments[MAX_ARGUMENT_COUNT];
-	bool register_argument(Argument &specified_arg);
-	bool set_default_argument(Argument &specified_arg);
-	bool process(int argc, char **argv);
+	std::vector<Argument> arguments;
+public:
+	bool register_argument(const Argument &given_arg);
+	bool set_default_argument(const Argument &specified_arg);
+	bool process(int argc, char **argv) const;
 
-	void output_help(int head_count = 0, ...);
+	void output_help(int head_count = 0, ...) const;
 };
 
 #endif
