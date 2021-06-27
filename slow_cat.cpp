@@ -1,3 +1,4 @@
+#define INCLUDE_ARGUMENT
 #include "utils.h"
 #include <cstdio>
 #include <cstdlib>
