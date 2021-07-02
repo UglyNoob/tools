@@ -206,7 +206,7 @@ void process_argument(int argc, char **argv) {
 	help.add_name("--help");
 	help.set_argc(0);
 	help.set_act_func([](char **argv) {
-		af.output_help(2, argv[0], ": Console tetris game.\nPress \"LEFT\" \"DOWN\" \"RIGHT\" or \"A\" \"S\" \"D\" to move the block.\nPress \"UP\" or \"W\"to rotate the block.\nPress \"SPACE\" to skip the block.\nPress \"Q\" to quit.");
+		af.output_help(2, new const char*[]{argv[0], ": Console tetris game.\nPress \"LEFT\" \"DOWN\" \"RIGHT\" or \"A\" \"S\" \"D\" to move the block.\nPress \"UP\" or \"W\"to rotate the block.\nPress \"SPACE\" to skip the block.\nPress \"Q\" to quit."});
 		end(0);
 	});
 	help.set_description("Display this help and exit");

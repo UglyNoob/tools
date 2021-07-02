@@ -24,7 +24,7 @@ void process_argument(int argc, char **argv) {
 	help.set_argc(0);
 	help.set_description("Display this help and exit");
 	help.set_act_func([](char **argv) {
-		af.output_help(4, argv[0], ": Display a file slowly.\nUsage: ", argv[0], " [FILENAME] [ARGUMENT]...\nWith no file, read standard input.");
+		af.output_help(4, new const char*[]{argv[0], ": Display a file slowly.\nUsage: ", argv[0], " [FILENAME] [ARGUMENT]...\nWith no file, read standard input."});
 		exit(0);
 	});
 	af.register_argument(help);

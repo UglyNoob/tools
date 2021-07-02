@@ -224,13 +224,11 @@ bool ArgumentFactory::process(int argc, char **argv) const{
 	return true;
 }
 
-void ArgumentFactory::output_help(int head_count, ...) const{
-	va_list p;
-	va_start(p, head_count);
+void ArgumentFactory::output_help(int head_count, const char **head, int tail_count, const char **tail) const {
 	for(int i = 0; i < head_count; i++) {
-		fprintf(stderr, "%s", va_arg(p, const char *));
+		fprintf(stderr, "%s", head[i]);
 	}
-	va_end(p);
+
 	fprintf(stderr, "\nArguments:\n");
 	for(const Argument &arg : arguments) {
 		fprintf(stderr, "\t");
@@ -248,5 +246,9 @@ void ArgumentFactory::output_help(int head_count, ...) const{
 		} else {
 			fprintf(stderr, "\n");
 		}
+	}
+
+	for(int i = 0; i < tail_count; i++) {
+		fprintf(stderr, "%s", tail[i]);
 	}
 }

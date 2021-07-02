@@ -35,7 +35,7 @@ public:
 	bool set_default_argument(const Argument &specified_arg);
 	bool process(int argc, char **argv) const;
 
-	void output_help(int head_count = 0, ...) const;
+	void output_help(int head_count = 0, const char **head = nullptr, int tail_count = 0, const char **tail = nullptr) const;
 };
 
 #endif
