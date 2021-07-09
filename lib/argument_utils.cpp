@@ -2,34 +2,35 @@
 #include "utils.h"
 
 #include <cstring>
+#include <memory>
 
-bool Argument::is_name(const char *given_name) const {
-	for(std::string name : names) {
-		if(name == given_name) {
+bool Argument::is_name(const std::string &name_) const {
+	for(const std::string &name : names) {
+		if(name == name_) {
 			return true;
 		}
 	}
 	return false;
 }
 
-Argument& Argument::add_name(const char *specified_name) {
-	names.push_back(specified_name);
+Argument& Argument::add_name(const std::string &name_) {
+	names.push_back(name_);
 	return *this;
 }
-Argument& Argument::set_argc(int given_argc) {
-	argc = given_argc;
+Argument& Argument::set_argc(size_t argc_) {
+	argc = argc_;
 	return *this;
 }
 Argument& Argument::set_act_func(void (*given_act_func)(char **argv)) {
 	act_func = given_act_func;
 	return *this;
 }
-Argument& Argument::set_description(const char *given_description) {
-	description = given_description;
+Argument& Argument::set_description(const std::string &description_) {
+	description = description_;
 	return *this;
 }
 
-Argument& Argument::set_called_limit(unsigned int given_max_called_time) {
+Argument& Argument::set_called_limit(size_t given_max_called_time) {
 	max_called_time = given_max_called_time;
 	return *this;
 }
@@ -51,11 +52,11 @@ bool Argument::equals(const Argument &b) const {
 	return false;
 }
 
-bool ArgumentFactory::register_argument(const Argument &given_arg) {
+bool ArgumentProcessor::register_argument(const Argument &given_arg) {
 	arguments.push_back(given_arg);
 	return true;
 }
-bool ArgumentFactory::set_default_argument(const Argument &specified_arg) {
+bool ArgumentProcessor::set_default_argument(const Argument &specified_arg) {
 	int index = 0;
 	for(const Argument &arg : arguments) {
 		if(specified_arg.equals(arg)) {
@@ -67,25 +68,25 @@ bool ArgumentFactory::set_default_argument(const Argument &specified_arg) {
 	return false;
 }
 
-bool ArgumentFactory::process(int argc, char **argv) const{
+bool ArgumentProcessor::process(int argc, char **argv) const {
 	if(arguments.empty()) {
 		return false;
 	}
-	size_t argument_count = arguments.size();
-	unsigned int *called_time = new unsigned int[argument_count];
-	memset(called_time, 0, sizeof(unsigned int) * argument_count);
+	size_t arguments_size = arguments.size();
+	unsigned int *called_time = new unsigned int[arguments_size];
+	memset(called_time, 0, sizeof(unsigned int) * arguments_size);
 
-	int **arg_pos = new int*[argument_count] {nullptr};
-	auto free_everything = [=](){
+	int **arg_pos = new int*[arguments_size] {nullptr};
+	auto free_everything = [called_time, arguments_size, arg_pos]() {
 		delete[] called_time;
-		for(int i = 0; i < argument_count; i++) {
+		for(int i = 0; i < arguments_size; i++) {
 			if(arg_pos[i] != nullptr) {
 				delete[] arg_pos[i];
 			}
 		}
 		delete[] arg_pos;
 	};
-	const char *(*longest_name)(const Argument &)  = [](const Argument &arg){
+	auto longest_name  = [](const Argument &arg) {
 		const std::string *result_p = nullptr;
 		size_t max = 0;
 		for(const std::string &str : arg.names) {
@@ -101,6 +102,7 @@ bool ArgumentFactory::process(int argc, char **argv) const{
 			return result_p->c_str();
 		}
 	};
+	constexpr int ARGUMENT_NOT_FOUND = -1;
 	auto get_argument_from_name = [this](const char *given_name) {
 		int index = 0;
 		for(const Argument &arg : arguments) {
@@ -109,7 +111,7 @@ bool ArgumentFactory::process(int argc, char **argv) const{
 			}
 			++index;
 		}
-		return -1;
+		return ARGUMENT_NOT_FOUND;
 	};
 
 	for(int i = 1; i < argc; i++) {
@@ -117,7 +119,7 @@ bool ArgumentFactory::process(int argc, char **argv) const{
 			continue;
 		}
 		int j = get_argument_from_name(argv[i]);
-		if(j == -1) {
+		if(j == ARGUMENT_NOT_FOUND) {
 			if(default_argument_pos == -1) {
 				if(argv[i][0] == '-') {
 					log_error("Unknown argument \"%s\". Type \"%s --help\" for usage.", argv[i], argv[0]);
@@ -171,11 +173,11 @@ bool ArgumentFactory::process(int argc, char **argv) const{
 			i += called_arg.argc - 1;
 			continue;
 		}
-		const Argument &called_arg = arguments[j];
+		const Argument &argument_called = arguments[j];
 
 		int given_argc = 0;
 		for(int k = i + 1; k < argc; k++) {
-			if(given_argc == called_arg.argc) {
+			if(given_argc == argument_called.argc) {
 				break;
 			}
 			if(strlen(argv[k]) == 0) {
@@ -192,24 +194,24 @@ bool ArgumentFactory::process(int argc, char **argv) const{
 			}
 			given_argc ++;
 		}
-		if(given_argc != called_arg.argc) {
-			log_error("Argument \"%s\" requires %d sub parameter%s, but got %d.", argv[i], called_arg.argc, called_arg.argc < 2 ? "" : "s", given_argc);
+		if(given_argc != argument_called.argc) {
+			log_error("Argument \"%s\" requires %d sub parameter%s, but got %d.", argv[i], argument_called.argc, argument_called.argc < 2 ? "" : "s", given_argc);
 			free_everything();
 			return false;
 		}
 		if(called_time[j] == 0) {
 			arg_pos[j] = new int[MAX_CALL_TIME];
 		}
-		if(called_time[j] == called_arg.max_called_time) {
-			log_error("The time of argument \"%s\" to be called reaches its limit %d.", argv[i], called_arg.max_called_time);
+		if(called_time[j] == argument_called.max_called_time) {
+			log_error("The time of argument \"%s\" to be called reaches its limit %d.", argv[i], argument_called.max_called_time);
 			free_everything();
 			return false;
 		}
 		arg_pos[j][called_time[j]] = i;
 		called_time[j] ++;
-		i += called_arg.argc;
+		i += argument_called.argc;
 	}
-	for(int i = 0; i < argument_count; i++) {
+	for(int i = 0; i < arguments_size; i++) {
 		if(called_time[i] != 0) {
 			for(int j = 0; j < called_time[i]; j++) {
 				if(arguments[i].argc == 0) {
@@ -224,9 +226,9 @@ bool ArgumentFactory::process(int argc, char **argv) const{
 	return true;
 }
 
-void ArgumentFactory::output_help(int head_count, const char **head, int tail_count, const char **tail) const {
-	for(int i = 0; i < head_count; i++) {
-		fprintf(stderr, "%s", head[i]);
+void ArgumentProcessor::output_help(std::initializer_list<std::string> head, std::initializer_list<std::string> tail) const {
+	for(const auto &str : head) {
+		fprintf(stderr, "%s", str.c_str());
 	}
 
 	fprintf(stderr, "\nArguments:\n");
@@ -241,14 +243,14 @@ void ArgumentFactory::output_help(int head_count, const char **head, int tail_co
 			}
 			fprintf(stderr, "%s", name.c_str());
 		}
-		if(!arg.description.empty()) {
-			fprintf(stderr, ":\n\t\t%s\n", arg.description.c_str());
-		} else {
+		if(arg.description.empty()) {
 			fprintf(stderr, "\n");
+		} else {
+			fprintf(stderr, ":\n\t\t%s\n", arg.description.c_str());
 		}
 	}
 
-	for(int i = 0; i < tail_count; i++) {
-		fprintf(stderr, "%s", tail[i]);
+	for(const auto &str : tail) {
+		fprintf(stderr, "%s", str.c_str());
 	}
 }

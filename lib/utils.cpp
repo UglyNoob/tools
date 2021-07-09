@@ -90,9 +90,9 @@ char getch() {
 }
 #endif
 
-wchar_t utf8to32(const unsigned char *src, int *output_length) {
+char32_t utf8to32(const unsigned char *src, int *output_length) {
 	int length = 0;
-	wchar_t result = L'\0';
+	char32_t result = '\0';
 	if((src[0] & 0x80) == 0x0) {
 		length = 1;
 		result = src[0];
@@ -114,7 +114,7 @@ wchar_t utf8to32(const unsigned char *src, int *output_length) {
 	return result;
 }
 
-wchar_t utf8to32(const char *src, int *output_length) {
+char32_t utf8to32(const char *src, int *output_length) {
 	return utf8to32((const unsigned char *)src, output_length);
 }
 

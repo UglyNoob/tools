@@ -1,101 +1,195 @@
-#include<cstdio>
-#include<cstdlib>
-#include<cstring>
-#include<unistd.h>
-#include<dirent.h>
+#include <filesystem>
+#include <cstdlib>
+#include <string>
+#include <vector>
+#include <iostream>
+#include <fstream>
 
-char *dirname,*text,*buffer;
-struct dirent *filename;
-DIR *dir;
-int len;
+#define INCLUDE_ARGUMENT
+#include "utils.h"
 
-void search(){
-	FILE *file=fopen(filename->d_name,"r");
-	if(file==NULL){
-		printf("Could not open file %s\n",filename->d_name);
-		return;
+using namespace std::filesystem;
+using std::string;
+using std::vector;
+using std::pair;
+
+vector<string> root_pathnames;
+string content;
+
+const int RED = 0;
+const int NORMAL = 1;
+
+void change_color(int color) {
+	switch(color) {
+		case RED:
+			printf("\033[91m\033[1m");
+			break;
+		case NORMAL:
+			printf("\033[0m");
+			break;
 	}
-	int index,line=0;
-	char c;
-	bool notend=true;
-	bool title=false;
-	while(notend){
-		line++;
-		index=0;
-		while((c=fgetc(file))!='\n'){
-			if(c==(char)EOF){
-				notend=false;
-				break;
-			}
-			buffer[index]=c;
-			index++;
+}
+
+class SearchResult {
+private:
+	using size_type = string::size_type;
+	vector<pair<size_type, size_type>> positions;
+public:
+	SearchResult() = default;
+	SearchResult(const SearchResult &) = default;
+	SearchResult(SearchResult &&) = default;
+
+	string text;
+	size_type line;
+
+	void reset() {
+		text = "";
+		line = 0;
+		positions.erase(positions.begin(), positions.end());
+	}
+	bool search() {
+		size_type first, pos = 0;
+		while((first = text.find(content, pos)) != string::npos) {
+			positions.push_back({first, first + content.size()});
+			pos = first + 1;
 		}
-		buffer[index]='\0';
-		if(index<len)continue;
-		bool found=false;
-		int level=0,last=0;
-		for(int i=0;i<index;i++){
-			if(text[level]==buffer[i])level++;
-			else level=0;
-			if(level==len){
-				if(!title){
-					printf("\n%s:\n",filename->d_name);
-					title=true;
+		if(positions.empty()) {
+			return false;
+		}
+		return true;
+	}
+	void print() const {
+		printf("%ld: ", line);
+		size_type index = 0;
+		for(char c : text) {
+			for(int i = 0; i < positions.size(); ++i) {
+				if(index == positions[i].first) {
+					change_color(RED);
+				} else if(index == positions[i].second) {
+					change_color(NORMAL);
 				}
-				found=true;
-				int j;
-				if(last==0)printf("%d: ",line);
-				for(j=last;j<=(i-len);j++)putchar(buffer[j]);
-				printf("\033[91m\033[1m");	//change the text colour into red
-				for(;j<=i;j++)putchar(buffer[j]);
-				printf("\033[0m");	//change back the text colour
-				last=j+1;
 			}
+			putchar(c);
+
+			++index;
 		}
-		if(found){
-			for(last--;last<index;last++){
-				putchar(buffer[last]);
+		change_color(NORMAL);
+		putchar('\n');
+	}
+};
+
+void end(int code) {
+	exit(code);
+}
+
+void process_argument(int argc,char **argv) {
+	static ArgumentProcessor *ap;
+	ap = new ArgumentProcessor;
+
+	Argument help, path, arg_content;
+
+	help.add_name("-h").add_name("--help");
+	help.set_argc(0);
+	help.set_called_limit(1);
+	help.set_description("Display this help and exit.");
+	help.set_act_func([](char **argv) {
+		ap->output_help({argv[0], ": Search content in specified context.\n"});
+		end(0);
+	});
+
+	path.add_name("-p").add_name("-f").add_name("--path").add_name("--file");
+	path.set_argc(1);
+	path.set_description("[PATH] Specify path(file or directory) as context.");
+	path.set_act_func([](char **argv) {
+		root_pathnames.push_back(argv[0]);
+	});
+
+	arg_content.add_name("--content");
+	arg_content.set_argc(1);
+	arg_content.set_description("[CONTENT] Set content to search.");
+	arg_content.set_act_func([](char **argv) {
+		static bool first = true;
+		if(first) {
+			first = false;
+		} else {
+			content.push_back(' ');
+		}
+		content.append(argv[0]);
+	});
+	
+
+	ap->register_argument(help);
+	ap->register_argument(path);
+	ap->register_argument(arg_content);
+	ap->set_default_argument(arg_content);
+	if(!ap->process(argc, argv)) {
+		exit(-1);
+	}
+	delete ap;
+}
+
+void search_file(std::istream &&is, const string &filename) {
+	size_t line = 0;
+	char c;
+	SearchResult sr;
+	vector<SearchResult> results;
+	while(c = is.get(), is) {
+		if(c == '\n') {
+			if(sr.search()) {
+				sr.line = line;
+				results.push_back(sr);
 			}
-			putchar('\n');
+
+			++line;
+			sr.reset();
+			continue;
+		}
+		sr.text.push_back(c);
+	}
+	if(!results.empty()) {
+		printf("\n%s:\n", filename.c_str());
+		for(const SearchResult &result : results) {
+			result.print();
 		}
 	}
 }
 
-int main(int argc,char **argv){
-	if(argc==1){
-		printf("Usage: %s [text to search]\n",argv[0]);
-		return 1;
-	}
-	int textLen=0;
-	for(int i=1;i<argc;i++){
-		textLen+=strlen(argv[i]);
-	}
-	text=new char[textLen+argc-1];
-	int index=0;
-	for(int i=1;i<argc;i++){
-		for(int j=0;argv[i][j];j++){
-			text[index]=argv[i][j];
-			index++;
-		}
-		text[index]=' ';
-		index++;
-	}
-	text[index-1]='\0';
-	dirname=getcwd(NULL,0);
-	buffer=new char[1048577];
-	len=strlen(text);
+void search(const path &p) {
+	directory_entry entry(p);
 
-	if(dirname==NULL){
-		printf("Error, could not get the working directory\n");
-		return 2;
+	file_type type = entry.status().type();
+	try {
+		if(type == file_type::directory) {
+			directory_iterator iter(p);
+			for(auto file : iter) {
+				search(file.path());
+			}
+		} else if(type == file_type::regular) {
+			search_file(std::ifstream(p), p.string());
+		}
+	} catch(filesystem_error fe) {
+		log_error("Can't open %s %s", type == file_type::directory ? "directory" : "file", p.string().c_str());
 	}
-	dir=opendir(dirname);
-	if(dir==NULL){
-		printf("Can't open %s",dirname);
+}
+
+int main(int argc,char **argv) {
+	process_argument(argc, argv);
+	if(content.empty()) {
+		log_error("Missing content. Type \"%s --help\" for more information.", argv[0]);
+		end(-1);
 	}
-	printf("Working at %s, searching for %s\n",dirname,text);
-	while(filename=readdir(dir)){
-		if(!strcmp(filename->d_name,".")||!strcmp(filename->d_name,".."))continue;
-		search();
+	if(root_pathnames.empty()) {
+		log_error("A path is required. Type \"%s --help\" for more information.", argv[0]);
+		end(-1);
+	}
+
+	for(const string &root_pathname : root_pathnames) {
+		path p(root_pathname);
+		if(!exists(p)) {
+			log_error("Path \"%s\" does not exist. Type \"%s --help\" for more information.", root_pathname.c_str(), argv[0]);
+			end(-1);
+		}
+
+		search(p);
 	}
 }

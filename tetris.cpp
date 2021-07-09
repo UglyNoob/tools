@@ -200,13 +200,12 @@ bool if_output_buffer_area = false, output_hard_mode = false;
 int delay_time = DEFAULT_DELAY_TIME;
 
 void process_argument(int argc, char **argv) {
-	static ArgumentFactory af;
+	static ArgumentProcessor af;
 	Argument help, map_size, delay_time_arg, hard_mode, show_buffer_area;
-	help.add_name("-h");
-	help.add_name("--help");
+	help.add_name("-h").add_name("--help");
 	help.set_argc(0);
 	help.set_act_func([](char **argv) {
-		af.output_help(2, new const char*[]{argv[0], ": Console tetris game.\nPress \"LEFT\" \"DOWN\" \"RIGHT\" or \"A\" \"S\" \"D\" to move the block.\nPress \"UP\" or \"W\"to rotate the block.\nPress \"SPACE\" to skip the block.\nPress \"Q\" to quit."});
+		af.output_help({argv[0], ": Console tetris game.\nPress \"LEFT\" \"DOWN\" \"RIGHT\" or \"A\" \"S\" \"D\" to move the block.\nPress \"UP\" or \"W\"to rotate the block.\nPress \"SPACE\" to skip the block.\nPress \"Q\" to quit."});
 		end(0);
 	});
 	help.set_description("Display this help and exit");
@@ -241,8 +240,7 @@ void process_argument(int argc, char **argv) {
 	map_size.set_description("[width] [height]: Set the size of the map");
 	af.register_argument(map_size);
 
-	delay_time_arg.add_name("-d");
-	delay_time_arg.add_name("--delay-time");
+	delay_time_arg.add_name("-d").add_name("-t").add_name("--delay-time");
 	delay_time_arg.set_argc(1);
 	delay_time_arg.set_act_func([](char **argv){
 		bool success;
@@ -267,7 +265,7 @@ void process_argument(int argc, char **argv) {
 	hard_mode.set_description("Hard mode output");
 	af.register_argument(hard_mode);
 
-	show_buffer_area.add_name("--show-buffer-area");
+	show_buffer_area.add_name("--buffer-area");
 	show_buffer_area.set_argc(0);
 	show_buffer_area.set_act_func([](char **argv) {
 		if_output_buffer_area = true;

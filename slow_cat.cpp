@@ -7,7 +7,6 @@
 
 const int MAX_FILE_COUNT = 1024;
 
-ArgumentFactory af;
 char **filenames = new char*[MAX_FILE_COUNT];
 int filename_count = 0;
 int delay_time = 1000;
@@ -17,20 +16,20 @@ void delay_us(int us) {
 }
 
 void process_argument(int argc, char **argv) {
+	static ArgumentProcessor *ap;
+	ap = new ArgumentProcessor;
 	Argument help, file, set_delay_time;
 
-	help.add_name("-h");
-	help.add_name("--help");
+	help.add_name("-h").add_name("--help");
 	help.set_argc(0);
 	help.set_description("Display this help and exit");
 	help.set_act_func([](char **argv) {
-		af.output_help(4, new const char*[]{argv[0], ": Display a file slowly.\nUsage: ", argv[0], " [FILENAME] [ARGUMENT]...\nWith no file, read standard input."});
+		ap->output_help({argv[0], ": Display a file slowly.\nUsage: ", argv[0], " [FILENAME] [ARGUMENT]...\nWith no file, read standard input."});
 		exit(0);
 	});
-	af.register_argument(help);
+	ap->register_argument(help);
 
-	file.add_name("-f");
-	file.add_name("--file");
+	file.add_name("-f").add_name("--file");
 	file.set_argc(1);
 	file.set_description("Specify file to display");
 	file.set_called_limit(MAX_FILE_COUNT);
@@ -38,10 +37,9 @@ void process_argument(int argc, char **argv) {
 		filenames[filename_count] = argv[0];
 		filename_count ++;
 	});
-	af.register_argument(file);
+	ap->register_argument(file);
 
-	set_delay_time.add_name("-t");
-	set_delay_time.add_name("--delay-time");
+	set_delay_time.add_name("-t").add_name("--delay-time");
 	set_delay_time.set_argc(1);
 	set_delay_time.set_description("Specify how long to delay between characters(Default 1000us)(us)");
 	set_delay_time.set_act_func([](char **argv) {
@@ -56,12 +54,13 @@ void process_argument(int argc, char **argv) {
 			exit(1);
 		}
 	});
-	af.register_argument(set_delay_time);
+	ap->register_argument(set_delay_time);
 
-	af.set_default_argument(file);
-	if(!af.process(argc, argv)) {
+	ap->set_default_argument(file);
+	if(!ap->process(argc, argv)) {
 		exit(0);
 	}
+	delete ap;
 }
 
 int main(int argc, char **argv) {
